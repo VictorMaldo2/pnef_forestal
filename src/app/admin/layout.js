@@ -10,6 +10,7 @@ export default function AdminLayout({ children }) {
           <Link href="/admin" className="hover:underline">Dashboard</Link>
           <Link href="/admin/usuarios" className="hover:underline">Usuarios</Link>
           <Link href="/admin/jornadas" className="hover:underline">Jornadas</Link>
+          <Link href="/admin/reportes" className="hover:underline">reporte</Link>
           <Link href="/admin/configuracion" className="hover:underline">Configuración</Link>
         </nav>
       </aside>

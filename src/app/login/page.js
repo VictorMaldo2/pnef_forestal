@@ -54,7 +54,7 @@ export default function LoginPage() {
     if (usuarioDB.role_id === 1) {
       router.push('/admin')
     } else if (usuarioDB.role_id === 2) {
-      router.push('/extensionista/jornada')
+      router.push('/extensionista')
     } else {
       setError('Rol de usuario no reconocido')
     }
