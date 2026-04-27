@@ -1,139 +1,51 @@
-"use client"
-
-import { useState } from "react"
-import dynamic from "next/dynamic"
-
-// Importar calendario con carga dinámica para evitar problemas en SSR
-const Calendar = dynamic(() => import("@mantine/dates").then(mod => mod.Calendar), { ssr: false })
-
-export default function VisitasPage() {
-  // Datos ficticios propietarios
-  const propietariosMock = [
-    { id: 1, rut: "12345678-9", nombre: "Juan Pérez", etnia: "Mapuche", genero: "Masculino", comuna: "Temuco", tipo_propietario: "Pequeño" },
-    { id: 2, rut: "98765432-1", nombre: "María González", etnia: "Aymara", genero: "Femenino", comuna: "Calama", tipo_propietario: "Mediano" },
-    { id: 3, rut: "11122333-4", nombre: "Carlos López", etnia: "Quechua", genero: "Masculino", comuna: "Arica", tipo_propietario: "Grande" }
-  ]
-
-  // Datos ficticios visitas agendadas
-  const visitasMock = [
-    { id: 1, propietario: propietariosMock[0], fecha_visita: new Date("2024-06-15T10:00:00"), descripcion: "Revisión de hectáreas", estado: "Pendiente" },
-    { id: 2, propietario: propietariosMock[1], fecha_visita: new Date("2024-06-20T14:00:00"), descripcion: "Entrevista inicial", estado: "Confirmada" }
-  ]
-
-  const [visitas, setVisitas] = useState(visitasMock)
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [selectedPropietarioId, setSelectedPropietarioId] = useState("")
-  const [descripcion, setDescripcion] = useState("")
-  const [error, setError] = useState("")
-
-  function resetForm() {
-    setSelectedDate(new Date())
-    setSelectedPropietarioId("")
-    setDescripcion("")
-    setError("")
-  }
-
-  // Función para agendar visita (simulada)
-  function agendarVisita(e) {
-    e.preventDefault()
-    setError("")
-    if (!selectedPropietarioId) {
-      setError("Seleccione un propietario")
-      return
-    }
-
-    const propietarioSeleccionado = propietariosMock.find(p => p.id === parseInt(selectedPropietarioId))
-    if (!propietarioSeleccionado) {
-      setError("Propietario inválido")
-      return
-    }
-
-    const nuevaVisita = {
-      id: visitas.length + 1,
-      propietario: propietarioSeleccionado,
-      fecha_visita: selectedDate,
-      descripcion,
-      estado: "Pendiente"
-    }
-
-    setVisitas([...visitas, nuevaVisita])
-    resetForm()
-  }
-
+export default function ExtensionistaDashboard() {
   return (
-    <div className="p-8 max-w-5xl mx-auto bg-white rounded shadow min-h-screen">
-      <h1 className="text-3xl font-bold mb-6">Agendar Visitas a Propietarios</h1>
-
-      <form onSubmit={agendarVisita} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div>
-          <label className="block mb-2 font-semibold">Fecha de visita</label>
-          <Calendar value={selectedDate} onChange={setSelectedDate} />
+    <div>
+      <h2 className="text-2xl font-semibold mb-8 text-green-800">Dashboard</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-green-100 hover:shadow-xl transition-all duration-300">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Propietarios</h3>
+          <p className="text-3xl font-bold text-green-600">23</p>
         </div>
-
-        <div>
-          <label className="block mb-2 font-semibold">Propietario</label>
-          <select
-            value={selectedPropietarioId}
-            onChange={e => setSelectedPropietarioId(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-          >
-            <option value="">-- Seleccione un propietario --</option>
-            {propietariosMock.map(p => (
-              <option key={p.id} value={p.id}>{`${p.nombre} (${p.rut})`}</option>
-            ))}
-          </select>
+        
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-green-100 hover:shadow-xl transition-all duration-300">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Visitas Pendientes</h3>
+          <p className="text-3xl font-bold text-yellow-600">5</p>
         </div>
-
-        <div>
-          <label className="block mb-2 font-semibold">Descripción</label>
-          <input
-            type="text"
-            placeholder="Descripción de la visita"
-            value={descripcion}
-            onChange={e => setDescripcion(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-          />
+        
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-green-100 hover:shadow-xl transition-all duration-300">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Jornadas Completadas</h3>
+          <p className="text-3xl font-bold text-blue-600">12</p>
         </div>
+      </div>
 
-        {error && <div className="text-red-600 col-span-3">{error}</div>}
-
-        <button type="submit" className="bg-blue-600 text-white py-3 rounded col-span-3 hover:bg-blue-700">
-          Agendar Visita
-        </button>
-      </form>
-
-      <h2 className="text-2xl font-semibold mb-4">Visitas Agendadas</h2>
-      <div className="overflow-auto border border-gray-300 rounded">
-        <table className="min-w-full table-auto">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border p-3 text-left">Propietario</th>
-              <th className="border p-3 text-left">Rut</th>
-              <th className="border p-3 text-left">Fecha</th>
-              <th className="border p-3 text-left">Descripción</th>
-              <th className="border p-3 text-left">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visitas.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="text-center p-6 text-gray-500">
-                  No hay visitas agendadas.
-                </td>
-              </tr>
-            ) : (
-              visitas.map(visita => (
-                <tr key={visita.id} className="hover:bg-gray-50">
-                  <td className="border p-3">{visita.propietario.nombre}</td>
-                  <td className="border p-3">{visita.propietario.rut}</td>
-                  <td className="border p-3">{visita.fecha_visita.toLocaleDateString()}</td>
-                  <td className="border p-3">{visita.descripcion}</td>
-                  <td className="border p-3">{visita.estado}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-green-100">
+          <h3 className="text-xl font-semibold mb-4 text-green-800">Próximas Visitas</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <span>Juan Pérez</span>
+              <span className="text-sm text-yellow-600 font-medium">15 Jun</span>
+            </div>
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <span>María González</span>
+              <span className="text-sm text-yellow-600 font-medium">20 Jun</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-green-100">
+          <h3 className="text-xl font-semibold mb-4 text-green-800">Acciones Rápidas</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <button className="bg-green-600 text-white p-4 rounded-xl hover:bg-green-700 transition-all duration-200">
+              + Agendar Visita
+            </button>
+            <button className="bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 transition-all duration-200">
+              Nueva Jornada
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
