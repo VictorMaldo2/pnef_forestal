@@ -20,7 +20,9 @@ export default function ExtensionistaDashboard() {
         </div>
         
         {/* Visitas Pendientes */}
-        <div className="bg-white p-8 rounded-xl shadow-lg border border-yellow-100 hover:shadow-xl transition-all duration-300">
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-yellow-100 hover:shadow-xl transition-all duration-300"
+        onClick={() => router.push('/extensionista/visi_pen')}
+        >
           <h3 className="text-lg font-semibold text-gray-800 mb-2">Visitas Pendientes</h3>
           <p className="text-3xl font-bold text-yellow-600">5</p>
         </div>
