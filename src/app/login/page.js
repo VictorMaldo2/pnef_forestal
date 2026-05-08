@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
@@ -14,49 +13,26 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
 
-    // Paso 1: Login con Supabase Auth
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
 
-    console.log('Respuesta login:', { data, signInError })
+      const data = await res.json()
 
-    if (signInError) {
-      setError(signInError.message)
-      return
-    }
+      if (!res.ok) {
+        setError(data.error || 'Error desconocido')
+        return
+      }
 
-    const user = data.user
-
-    if (!user) {
-      setError('No se pudo iniciar sesión')
-      return
-    }
-
-    // Paso 2: Consulta datos extendidos y rol en tabla usuarios
-    const { data: usuarioDB, error: usuarioError } = await supabase
-      .from('usuarios')
-      .select('id, rut, nombre, role_id')
-      .eq('id', user.id)
-      .single()
-
-    console.log('Datos usuario DB:', usuarioDB, 'Error:', usuarioError)
-
-    if (usuarioError || !usuarioDB) {
-      setError('Usuario no autorizado o no registrado en base de datos')
-      return
-    }
-
-    // Paso 3: Redirigir según role_id directamente
-    console.log('Role ID del usuario:', usuarioDB.role_id)
-
-    if (usuarioDB.role_id === 1) {
-      router.push('/admin')
-    } else if (usuarioDB.role_id === 2) {
-      router.push('/extensionista')
-    } else {
-      setError('Rol de usuario no reconocido')
+      // Login exitoso - redirigir según role
+      if (data.role_id === 1) router.push('/admin')
+      else if (data.role_id === 2) router.push('/extensionista')
+      else setError('Rol de usuario no reconocido')
+    } catch (err) {
+      setError('Error en el servidor')
     }
   }
 
@@ -89,5 +65,5 @@ export default function LoginPage() {
         </button>
       </form>
     </div>
-  )
+  );
 }

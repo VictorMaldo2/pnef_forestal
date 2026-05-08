@@ -1,22 +1,38 @@
-export default function UsuariosTable({ usuarios }) {
+'use client'
+
+import { useEffect, useState } from 'react'
+import UsuariosTable from './UsuariosTable'
+
+export default function AdminUsuarios() {
+  const [usuarios, setUsuarios] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    async function fetchUsuarios() {
+      try {
+        const res = await fetch('/api/usuarios')
+        if (!res.ok) {
+          throw new Error('Fallo al obtener usuarios')
+        }
+        const data = await res.json()
+        setUsuarios(data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchUsuarios()
+  }, [])
+
+  if (loading) return <div>Cargando usuarios...</div>
+  if (error) return <div className="text-red-600">Error: {error}</div>
+
   return (
-    <table className="min-w-full table-auto border border-gray-300 rounded">
-      <thead className="bg-gray-200">
-        <tr>
-          <th className="border p-3">Nombre</th>
-          <th className="border p-3">Rol</th>
-          <th className="border p-3">Email</th>
-        </tr>
-      </thead>
-      <tbody>
-        {usuarios.map((user) => (
-          <tr key={user.id} className="border-b hover:bg-gray-100">
-            <td className="border p-3">{user.nombre}</td>
-            <td className="border p-3">{user.rol}</td>
-            <td className="border p-3">{user.email}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div>
+      <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
+      <UsuariosTable usuarios={usuarios} />
+    </div>
   )
 }

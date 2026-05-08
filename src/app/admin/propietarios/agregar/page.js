@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 export default function AgregarPropietario() {
@@ -25,10 +24,10 @@ export default function AgregarPropietario() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setForm({
-      ...form,
+    setForm((prev) => ({
+      ...prev,
       [name]: type === 'checkbox' ? checked : value
-    })
+    }))
   }
 
   const handleSubmit = async (e) => {
@@ -38,28 +37,34 @@ export default function AgregarPropietario() {
     setSuccess('')
 
     try {
-      const { data, error } = await supabase
-        .from('propietarios')
-        .insert([form])
-        .select()
+      const res = await fetch('/api/propietarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(form)
+      })
 
-      if (error) {
-        setError('Error al guardar propietario: ' + error.message)
-      } else {
-        setSuccess('Propietario agregado exitosamente')
-        setForm({
-          rut: '',
-          nombre: '',
-          comunidad_indigena: false,
-          comunidad_nombre: '',
-          genero: '',
-          comuna: '',
-          tipo_propietario: '',
-          telefono: '',
-          email: '',
-          direccion: ''
-        })
+      if (!res.ok) {
+        const errorData = await res.json()
+        setError('Error al guardar propietario: ' + (errorData.error || 'Error desconocido'))
+        setLoading(false)
+        return
       }
+
+      setSuccess('Propietario agregado exitosamente')
+      setForm({
+        rut: '',
+        nombre: '',
+        comunidad_indigena: false,
+        comunidad_nombre: '',
+        genero: '',
+        comuna: '',
+        tipo_propietario: '',
+        telefono: '',
+        email: '',
+        direccion: ''
+      })
     } catch (err) {
       setError('Error inesperado: ' + err.message)
     } finally {
@@ -93,7 +98,6 @@ export default function AgregarPropietario() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Datos básicos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700">
@@ -126,7 +130,6 @@ export default function AgregarPropietario() {
             </div>
           </div>
 
-          {/* Comunidad indígena */}
           <div className="flex items-center space-x-3">
             <input
               type="checkbox"
@@ -140,7 +143,6 @@ export default function AgregarPropietario() {
             </label>
           </div>
 
-          {/* Si pertenece, pide nombre comunidad */}
           {form.comunidad_indigena && (
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700">
@@ -157,7 +159,6 @@ export default function AgregarPropietario() {
             </div>
           )}
 
-          {/* Más campos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700">
@@ -252,7 +253,7 @@ export default function AgregarPropietario() {
             />
           </div>
 
-          <button 
+          <button
             disabled={loading}
             type="submit"
             className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-60"
