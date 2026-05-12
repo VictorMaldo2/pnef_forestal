@@ -73,32 +73,34 @@ export default function AgregarPropietario() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center p-6">
-      <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-green-800">Agregar Propietario</h1>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex flex-col items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-800">
+            Agregar Propietario
+          </h1>
           <button
             onClick={() => router.back()}
-            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+            className="w-full sm:w-auto bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 text-sm sm:text-base font-medium flex items-center justify-center"
           >
             ← Volver
           </button>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm">
             {success}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700">
                 RUT *
@@ -108,7 +110,7 @@ export default function AgregarPropietario() {
                 name="rut"
                 value={form.rut}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
                 placeholder="12345678-9"
                 required
               />
@@ -119,26 +121,27 @@ export default function AgregarPropietario() {
                 Nombre Completo *
               </label>
               <input
+            
                 type="text"
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
                 placeholder="Juan Pérez"
                 required
               />
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start space-x-3 p-1">
             <input
               type="checkbox"
               name="comunidad_indigena"
               checked={form.comunidad_indigena}
               onChange={handleChange}
-              className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+              className="w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 mt-1 flex-shrink-0"
             />
-            <label className="text-sm font-semibold text-gray-700">
+            <label className="text-sm font-semibold text-gray-700 cursor-pointer flex-1">
               Pertenece a comunidad indígena
             </label>
           </div>
@@ -153,13 +156,13 @@ export default function AgregarPropietario() {
                 name="comunidad_nombre"
                 value={form.comunidad_nombre}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
                 placeholder="Mapuche, Aymara, etc."
               />
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700">
                 Género
@@ -168,7 +171,7 @@ export default function AgregarPropietario() {
                 name="genero"
                 value={form.genero}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
               >
                 <option value="">Seleccionar género</option>
                 <option value="Masculino">Masculino</option>
@@ -186,13 +189,13 @@ export default function AgregarPropietario() {
                 name="comuna"
                 value={form.comuna}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
                 placeholder="Temuco, Calama, etc."
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700">
                 Tipo de Propietario
@@ -201,7 +204,7 @@ export default function AgregarPropietario() {
                 name="tipo_propietario"
                 value={form.tipo_propietario}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
               >
                 <option value="">Seleccionar tipo</option>
                 <option value="Pequeño">Pequeño</option>
@@ -219,7 +222,7 @@ export default function AgregarPropietario() {
                 name="telefono"
                 value={form.telefono}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
                 placeholder="+56912345678"
               />
             </div>
@@ -234,7 +237,7 @@ export default function AgregarPropietario() {
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
               placeholder="correo@ejemplo.com"
             />
           </div>
@@ -247,7 +250,7 @@ export default function AgregarPropietario() {
               name="direccion"
               value={form.direccion}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm resize-vertical"
               placeholder="Dirección completa"
               rows={3}
             />
@@ -256,7 +259,7 @@ export default function AgregarPropietario() {
           <button
             disabled={loading}
             type="submit"
-            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-60"
+            className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
           >
             {loading ? 'Guardando...' : 'Guardar Propietario'}
           </button>

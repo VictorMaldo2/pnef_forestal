@@ -1,44 +1,38 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { jsPDF } from 'jspdf'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 
 export default function ExtensionistaDashboard() {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
+  const [propietarios, setPropietarios] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  // Datos ficticios para propietarios
-  const propietarios = useMemo(() => [
-    {
-      id: 1,
-      nombre: 'Juan Pérez',
-      rut: '12345678-9',
-      comunidad_indigena: 'Mapuche',
-      genero: 'Masculino',
-      comuna: 'Temuco',
-      tipo_propietario: 'Pequeño',
-      visitas_pendientes: 2,
-    },
-    {
-      id: 2,
-      nombre: 'María González',
-      rut: '98765432-1',
-      comunidad_indigena: 'Aymara',
-      genero: 'Femenino',
-      comuna: 'Calama',
-      tipo_propietario: 'Mediano',
-      visitas_pendientes: 0,
-    },
-  ], [])
+  // Cargar datos reales al montar
+  useEffect(() => {
+    async function loadPropietarios() {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/admpropietarios')
+        if (!res.ok) {
+          throw new Error('Error al obtener propietarios')
+        }
+        const data = await res.json()
+        setPropietarios(data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadPropietarios()
+  }, [])
 
-  const visitasPendientesCount = 5
-  const jornadasCompletadasCount = 12
-  const proximasVisitas = [
-    { nombre: 'Juan Pérez', fecha: '15 Jun' },
-    { nombre: 'María González', fecha: '20 Jun' },
-  ]
-
+  // Filtrado por busqueda
   const propietariosFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase()
     return propietarios.filter(
@@ -47,149 +41,185 @@ export default function ExtensionistaDashboard() {
     )
   }, [busqueda, propietarios])
 
-  // Función para exportar a PDF
+  // Exportar PDF desde datos actuales
   const exportarPDF = () => {
     const doc = new jsPDF()
     doc.setFontSize(20)
-    doc.text('Listado de Propietarios', 10, 20)
+    doc.text('Listado de Propietarios', 14, 20)
 
-    let y = 30
-    propietariosFiltrados.forEach((p, i) => {
-      if (y > 280) {
-        doc.addPage()
-        y = 20
-      }
-      doc.setFontSize(14)
-      doc.text(`${i + 1}. ${p.nombre} | RUT: ${p.rut}`, 10, y)
-      doc.setFontSize(12)
-      doc.text(`Comunidad: ${p.comunidad_indigena || 'N/A'}, Género: ${p.genero || 'N/A'}`, 10, y + 6)
-      doc.text(`Comuna: ${p.comuna || 'N/A'}, Tipo: ${p.tipo_propietario || 'N/A'}`, 10, y + 12)
-      doc.text(`Visitas pendientes: ${p.visitas_pendientes}`, 10, y + 18)
-      y += 28
+    const headers = [['#', 'Nombre', 'RUT', 'Comunidad', 'Género', 'Comuna', 'Tipo', 'Visitas Pendientes']]
+    // Los datos en filas
+    const data = propietariosFiltrados.map((p, i) => [
+      i + 1,
+      p.nombre || 'N/A',
+      p.rut || 'N/A',
+      p.comunidad_indigena ? (p.comunidad_indigena || 'Indígena') : 'No',
+      p.genero || 'N/A',
+      p.comuna || 'N/A',
+      p.tipo_propietario || 'N/A',
+      p.visitas_pendientes ?? 0
+    ])
+
+    doc.autoTable({
+      startY: 30,
+      head: headers,
+      body: data,
+      headStyles: { fillColor: [16, 185, 129] }, // verde Tailwind emerald-500
+      styles: { fontSize: 9 },
+      theme: 'striped',
+      margin: { left: 10, right: 10 }
     })
 
     doc.save('propietarios_pnef.pdf')
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-green-700 animate-pulse text-lg">Cargando propietarios...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-600 text-lg">Error: {error}</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-green-50 p-6">
-      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md p-6">
+    <div className="min-h-screen bg-green-50 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-green-800">Panel Administrativo</h1>
-            <p className="text-green-600">Gestión de propietarios</p>
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 lg:gap-0 mb-6 pb-6 border-b border-green-100">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-800 leading-tight">
+              Panel Administrativo
+            </h1>
+            <p className="text-green-600 text-sm sm:text-base mt-1">Gestión de propietarios</p>
           </div>
           <button
             onClick={() => router.push('/admin')}
-            className="bg-green-600 text-white rounded px-5 py-2 hover:bg-green-700 transition"
+            className="w-full lg:w-auto bg-green-600 text-white rounded-lg px-4 py-2.5 hover:bg-green-700 transition-colors text-sm font-medium shadow-sm"
           >
-            volver
+            ← Volver
           </button>
         </div>
 
-        {/* Indicadores */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow border border-green-100 hover:shadow-lg transition">
-            <h3 className="text-lg font-semibold mb-2 text-gray-800">Propietarios</h3>
-            <p className="text-4xl font-bold text-green-600">{propietarios.length}</p>
+        {/* Indicadores de cantidad */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+          <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-xl shadow-sm border border-green-200 hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold mb-1 text-gray-800">Propietarios</h3>
+                <p className="text-3xl sm:text-4xl lg:text-4xl font-bold text-green-600">{propietarios.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <span className="text-green-600 text-xl">👥</span>
+              </div>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow border border-yellow-100 hover:shadow-lg transition">
-            <h3 className="text-lg font-semibold mb-2 text-gray-800">Visitas Pendientes</h3>
-            <p className="text-4xl font-bold text-yellow-600">{visitasPendientesCount}</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border border-blue-100 hover:shadow-lg transition">
-            <h3 className="text-lg font-semibold mb-2 text-gray-800">Jornadas Completadas</h3>
-            <p className="text-4xl font-bold text-blue-600">{jornadasCompletadasCount}</p>
-          </div>
+          {/* Aquí puedes agregar más indicadores si tienes */}
         </div>
 
         {/* Buscador */}
-        <div className="mb-8">
-          <input
-            type="text"
-            placeholder="Buscar propietario por nombre o RUT..."
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            className="w-full p-4 pl-12 border border-green-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-400 shadow-sm"
-          />
+        <div className="mb-6">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <span className="text-gray-400 text-lg">🔍</span>
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar propietario por nombre o RUT..."
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 border border-green-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-400 shadow-sm text-sm transition-all"
+            />
+          </div>
         </div>
 
-        {/* Botón para exportar PDF */}
-        <button
-          onClick={exportarPDF}
-          className="mb-6 bg-green-700 text-white py-3 px-6 rounded hover:bg-green-800 transition"
-        >
-          📄 Exportar listado a PDF
-        </button>
+        {/* Botón exportar PDF */}
+        <div className="mb-8">
+          <button
+            onClick={exportarPDF}
+            className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-xl hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl text-sm font-semibold"
+          >
+            📄 Exportar listado a PDF
+          </button>
+        </div>
 
-        {/* Tabla Propietarios */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="p-6 border-b border-green-100">
-            <h2 className="text-2xl font-semibold text-green-800">
+        {/* Tabla */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-6 sm:p-8 border-b border-green-100 bg-gradient-to-r from-green-50 to-green-100">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-green-800">
               Propietarios ({propietariosFiltrados.length})
             </h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full table-auto">
-              <thead className="bg-green-50">
+            <table className="min-w-full divide-y divide-green-100">
+              <thead className="bg-green-50/50">
                 <tr>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">
+                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider">
                     Nombre
                   </th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">
+                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider hidden md:table-cell">
                     RUT
                   </th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">
-                    Comunidad Indígena
+                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider hidden lg:table-cell">
+                    Comunidad
                   </th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">
+                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider hidden sm:table-cell">
                     Comuna
                   </th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">
-                    Tipo Propietario
+                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider hidden md:table-cell">
+                    Tipo
                   </th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">
-                    Visitas Pendientes
+                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider">
+                    Visitas
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-green-50">
                 {propietariosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center p-6 text-gray-500">
-                      No se encontraron propietarios.
+                    <td colSpan="6" className="text-center py-12 text-gray-500">
+                      <div className="text-lg sm:text-xl">No se encontraron propietarios</div>
+                      <div className="text-sm mt-1">Intenta con otro término de búsqueda</div>
                     </td>
                   </tr>
                 ) : (
                   propietariosFiltrados.map(propietario => (
                     <tr
                       key={propietario.id}
-                      className="hover:bg-green-50 transition-colors"
+                      className="hover:bg-green-50/50 transition-all"
                     >
-                      <td className="border p-4 font-medium text-gray-900">
+                      <td className="px-4 py-5 sm:px-6 lg:px-8 font-medium text-gray-900 text-sm">
                         {propietario.nombre}
                       </td>
-                      <td className="border p-4 text-gray-700">
+                      <td className="px-4 py-5 sm:px-6 lg:px-8 text-gray-700 text-sm hidden md:table-cell">
                         {propietario.rut}
                       </td>
-                      <td className="border p-4">
+                      <td className="px-4 py-5 sm:px-6 lg:px-8 hidden lg:table-cell">
                         {propietario.comunidad_indigena ? (
-                          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                             {propietario.comunidad_indigena}
                           </span>
                         ) : (
-                          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
                             No
                           </span>
                         )}
                       </td>
-                      <td className="border p-4 text-gray-700">{propietario.comuna}</td>
-                      <td className="border p-4 text-gray-700">
+                      <td className="px-4 py-5 sm:px-6 lg:px-8 text-gray-700 text-sm hidden sm:table-cell">
+                        {propietario.comuna}
+                      </td>
+                      <td className="px-4 py-5 sm:px-6 lg:px-8 text-gray-700 text-sm hidden md:table-cell">
                         {propietario.tipo_propietario}
                       </td>
-                      <td className="border p-4">
-                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
+                      <td className="px-4 py-5 sm:px-6 lg:px-8">
+                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs sm:text-sm font-semibold">
                           {propietario.visitas_pendientes}
                         </span>
                       </td>
@@ -200,8 +230,6 @@ export default function ExtensionistaDashboard() {
             </table>
           </div>
         </div>
-
-        {/* Próximas Visitas y Acciones Rápidas pueden ir aquí */}
       </div>
     </div>
   )
