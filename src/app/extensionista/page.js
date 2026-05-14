@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import { ArrowLeftIcon, UsersIcon, ClockIcon, CheckCircleIcon, CalendarIcon, PlusIcon, MapPinIcon, DocumentIcon, WrenchIcon } from '@heroicons/react/24/outline'
 
 export default function ExtensionistaDashboard() {
@@ -25,6 +26,13 @@ export default function ExtensionistaDashboard() {
               <p className="text-green-600 text-sm sm:text-base lg:text-lg mt-1">Gestión diaria de campo PNEF Forestal</p>
             </div>
           </div>
+            <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition font-semibold shadow-md self-start lg:self-auto"
+            aria-label="Cerrar sesión"
+          >
+            Cerrar sesión
+          </button>
         </div>
 
         {/* Estadísticas principales */}

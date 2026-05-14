@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { pool } from '../../../lib/db'  // Ruta relativa desde api/extVisitas
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '../auth/[...nextauth]/route'  // Ajusta ruta según estructura
 
 export async function GET() {
   try {
@@ -10,6 +12,7 @@ export async function GET() {
         v.hora_visita,
         v.estado,
         v.observaciones,
+        v.actividad,
         p.nombre AS propietario_nombre,
         p.rut AS propietario_rut
       FROM visitass v
@@ -25,13 +28,28 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const { propietario_id, fecha_visita, hora_visita = '00:00', estado, observaciones } = await request.json()
+    // Validar sesión y obtener extensionista_id seguro
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const extensionista_id = session.user.id
+
+    const {
+      propietario_id,
+      fecha_visita,
+      hora_visita = '00:00',
+      estado,
+      observaciones,
+      actividad
+    } = await request.json()
 
     const result = await pool.query(
-      `INSERT INTO visitass (propietario_id, fecha_visita, hora_visita, estado, observaciones, creado_en, actualizado_en)
-       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      `INSERT INTO visitass (propietario_id, extensionista_id, fecha_visita, hora_visita, estado, observaciones, actividad, creado_en, actualizado_en)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
        RETURNING *`,
-      [propietario_id, fecha_visita, hora_visita, estado, observaciones]
+      [propietario_id, extensionista_id, fecha_visita, hora_visita, estado, observaciones, actividad]
     )
 
     return NextResponse.json(result.rows[0])

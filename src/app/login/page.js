@@ -1,47 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn, useSession } from 'next-auth/react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const router = useRouter()
+  const { data: session } = useSession()
+
+  useEffect(() => {
+    if (session?.user?.roleId) {
+      if (session.user.roleId === 1) router.push('/admin')
+      else if (session.user.roleId === 2) router.push('/extensionista')
+      else {
+        setTimeout(() => {
+          setError('Rol de usuario no reconocido')
+        }, 0)
+      }
+    }
+  }, [session, router])
 
   async function handleLogin(e) {
     e.preventDefault()
     setError('')
 
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
+    const res = await signIn('credentials', {
+      redirect: false,
+      email,
+      password
+    })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Error desconocido')
-        return
-      }
-
-      // Login exitoso - redirigir según role
-      if (data.role_id === 1) router.push('/admin')
-      else if (data.role_id === 2) router.push('/extensionista')
-      else setError('Rol de usuario no reconocido')
-    } catch (err) {
-      setError('Error en el servidor')
+    if (res.error) {
+      setError(res.error)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 overflow-hidden relative">
+    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-emerald-700 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 overflow-hidden relative">
       {/* Fondo decorativo */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-green-400/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-300/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
@@ -143,5 +145,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

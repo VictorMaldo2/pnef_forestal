@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import { ArrowLeftIcon, PlusIcon, UsersIcon, CalendarIcon, DocumentTextIcon, CogIcon } from '@heroicons/react/24/outline'
 
 export default function AdminDashboard() {
@@ -30,7 +31,7 @@ export default function AdminDashboard() {
               </h1>
             </div>
             <p className="text-green-600 text-sm sm:text-base lg:text-lg max-w-2xl">
-              Gestión completa del sistema PNEF Forestal
+              Gestión completa del sistema PNEF 
             </p>
           </div>
           
@@ -41,62 +42,94 @@ export default function AdminDashboard() {
             <PlusIcon className="h-5 w-5" />
             Nuevo Propietario
           </button>
+
+          <button
+                      onClick={() => signOut({ callbackUrl: '/login' })}
+                      className="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition font-semibold shadow-md self-start lg:self-auto"
+                      aria-label="Cerrar sesión"
+                    >
+                      Cerrar sesión
+                    </button>
         </div>
 
         {/* Estadísticas principales */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-12">
-          <div className="group bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-lg border border-green-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 hover:border-green-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                <UsersIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </div>
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-3 text-gray-800 leading-tight">Total Propietarios</h3>
-            <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-green-700 drop-shadow-sm">
-              {totalPropietarios.toLocaleString()}
-            </p>
-          </div>
+  <button
+    type="button"
+    className="group bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-lg border border-green-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 hover:border-green-200"
+    onClick={() => router.push('/admin/propietarios/MosPro')} // Cambia por ruta deseada
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className="p-3 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl group-hover:scale-110 transition-transform duration-300 shadow-lg">
+        <UsersIcon className="h-6 w-6 text-green-600" />
+      </div>
+      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    </div>
+    <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-3 text-gray-800 leading-tight">
+      Total Propietarios
+    </h3>
+    <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-green-700 drop-shadow-sm">
+      {totalPropietarios.toLocaleString()}
+    </p>
+  </button>
 
-          <div className="group bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-lg border border-yellow-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 hover:border-yellow-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                <CalendarIcon className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </div>
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-3 text-gray-800 leading-tight">Visitas Pendientes</h3>
-            <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-yellow-600 drop-shadow-sm">
-              {visitasPendientes}
-            </p>
-          </div>
+  <button
+    type="button"
+    className="group bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-lg border border-yellow-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 hover:border-yellow-200"
+    onClick={() => router.push('/admin/visitas/visPen')} // Cambia por ruta deseada
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className="p-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl group-hover:scale-110 transition-transform duration-300 shadow-lg">
+        <CalendarIcon className="h-6 w-6 text-yellow-600" />
+      </div>
+      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    </div>
+    <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-3 text-gray-800 leading-tight">
+      Visitas Pendientes
+    </h3>
+    <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-yellow-600 drop-shadow-sm">
+      {visitasPendientes}
+    </p>
+  </button>
 
-          <div className="group bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-lg border border-blue-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 hover:border-blue-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                <CalendarIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </div>
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-3 text-gray-800 leading-tight">Jornadas Totales</h3>
-            <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-blue-600 drop-shadow-sm">
-              {jornadasTotales}
-            </p>
-          </div>
+  <button
+    type="button"
+    className="group bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-lg border border-blue-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 hover:border-blue-200"
+    onClick={() => router.push('/ruta-jornadas')} // Cambia por ruta deseada
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl group-hover:scale-110 transition-transform duration-300 shadow-lg">
+        <CalendarIcon className="h-6 w-6 text-blue-600" />
+      </div>
+      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    </div>
+    <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-3 text-gray-800 leading-tight">
+      Jornadas Totales
+    </h3>
+    <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-blue-600 drop-shadow-sm">
+      {jornadasTotales}
+    </p>
+  </button>
 
-          <div className="group bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-lg border border-purple-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 hover:border-purple-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                <DocumentTextIcon className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </div>
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-3 text-gray-800 leading-tight">Reportes Generados</h3>
-            <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-purple-600 drop-shadow-sm">
-              {reportesGenerados}
-            </p>
-          </div>
-        </section>
+  <button
+    type="button"
+    className="group bg-white/70 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-lg border border-purple-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 hover:border-purple-200"
+    onClick={() => router.push('/ruta-reportes')} // Cambia por ruta deseada
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className="p-3 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl group-hover:scale-110 transition-transform duration-300 shadow-lg">
+        <DocumentTextIcon className="h-6 w-6 text-purple-600" />
+      </div>
+      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    </div>
+    <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-3 text-gray-800 leading-tight">
+      Reportes Generados
+    </h3>
+    <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-purple-600 drop-shadow-sm">
+      {reportesGenerados}
+    </p>
+  </button>
+</section>
 
         {/* Sección de acciones rápidas */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 pt-8 border-t border-green-100">
