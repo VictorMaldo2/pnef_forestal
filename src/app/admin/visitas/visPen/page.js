@@ -1,128 +1,309 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useMemo } from 'react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
-export default function VisitasPendientes() {
-  const [visitas, setVisitas] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const router = useRouter()
+function ModalEditar({ visita, onClose, onGuardar }) {
+  const [form, setForm] = useState({
+    fecha_visita:  visita.fecha_visita?.split('T')[0] || '',
+    hora_visita:   visita.hora_visita || '',
+    actividad:     visita.actividad || '',
+    observaciones: visita.observaciones || '',
+  })
 
-  useEffect(() => {
-    async function fetchVisitasPendientes() {
-      setLoading(true)
-      setError('')
+  function handleChange(e) {
+    const { name, value } = e.target
+    setForm(prev => ({ ...prev, [name]: value }))
+  }
 
-      try {
-        // Llama a tu endpoint API que consulta las visitas pendientes en PostgreSQL
-        const res = await fetch('/api/visPendientes')
-        if (!res.ok) throw new Error('Error al cargar visitas')
-        const data = await res.json()
-        setVisitas(data.filter(visita => visita.estado === 'pendiente'))
-      } catch (err) {
-        setError('Error al cargar visitas: ' + err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchVisitasPendientes()
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
-        <div className="text-xl text-green-600">Cargando visitas pendientes...</div>
-      </div>
-    )
+  async function handleGuardar() {
+    await onGuardar({ id: visita.id, ...form })
+    onClose()
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
-      <div className="max-w-6xl mx-auto p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-green-800">Visitas Pendientes</h1>
-         <button
-  onClick={() => router.push('/admin')}
-  className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600"
->
-  ← Volver
-</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-bold text-green-800">Modificar Visita</h2>
+          <button onClick={onClose}
+            className="text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">✕</button>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Propietario</label>
+            <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">{visita.propietario_nombre}</p>
           </div>
-        )}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Extensionista</label>
+            <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">{visita.extensionista_nombre}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha</label>
+              <input type="date" name="fecha_visita" value={form.fecha_visita}
+                onChange={handleChange}
+                className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Hora</label>
+              <input type="time" name="hora_visita" value={form.hora_visita}
+                onChange={handleChange}
+                className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Actividad</label>
+            <input type="text" name="actividad" value={form.actividad}
+              onChange={handleChange} placeholder="Actividad a realizar"
+              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Observaciones</label>
+            <textarea name="observaciones" value={form.observaciones}
+              onChange={handleChange} rows={3} placeholder="Observaciones"
+              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+          </div>
+        </div>
 
-        {visitas.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎯</div>
-            <h3 className="text-2xl font-semibold text-gray-600 mb-2">No tienes visitas pendientes</h3>
-            <p className="text-gray-500">¡Excelente trabajo! Todas tus visitas están completadas.</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-green-800">
-                {visitas.length} visita(s) pendiente(s)
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-green-50">
-                  <tr>
-                    <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Fecha</th>
-                    <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Propietario</th>
-                    <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">RUT</th>
-                    <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Comuna</th>
-                    <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Descripción</th>
-                    <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visitas.map((visita) => (
-                    <tr key={visita.id} className="border-b hover:bg-green-50">
-                      <td className="border-b border-green-50 p-4">
-                        <div className="font-semibold text-lg">
-                          {new Date(visita.fecha_visita).toLocaleDateString('es-CL')}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(visita.fecha_visita).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </td>
-                      <td className="border-b border-green-50 p-4 font-medium">
-                        {visita.propietario_nombre || 'Sin propietario'}
-                      </td>
-                      <td className="border-b border-green-50 p-4">
-                        {visita.propietario_rut || 'N/D'}
-                      </td>
-                      <td className="border-b border-green-50 p-4">
-                        {visita.propietario_comuna || 'N/D'}
-                      </td>
-                      <td className="border-b border-green-50 p-4 max-w-xs truncate">
-                        {visita.descripcion || 'Sin descripción'}
-                      </td>
-                      <td className="border-b border-green-50 p-4">
-                        <div className="flex space-x-2">
-                          <button className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 text-sm">
-                            Marcar Completada
-                          </button>
-                          <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 text-sm">
-                            Ver Detalle
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <div className="flex gap-3 p-6 border-t">
+          <button onClick={onClose}
+            className="flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+            Cancelar
+          </button>
+          <button onClick={handleGuardar}
+            className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition text-sm font-semibold">
+            Guardar cambios
+          </button>
+        </div>
       </div>
+    </div>
+  )
+}
+
+export default function VisitasPendientes() {
+  const [visitas, setVisitas]           = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState('')
+  const [visitaEditar, setVisitaEditar] = useState(null)
+  const [filterExtensionista, setFilterExtensionista] = useState('')
+  const [filterPropietario, setFilterPropietario]     = useState('')
+  const [filterFecha, setFilterFecha]                 = useState('')
+
+  useEffect(() => {
+    let activo = true
+
+    async function cargar() {
+      setLoading(true)
+      setError('')
+      try {
+        const res = await fetch('/api/visPendientes')
+        if (!res.ok) throw new Error('Error al cargar visitas')
+        const data = await res.json()
+        if (activo) setVisitas(data)
+      } catch (err) {
+        if (activo) setError('Error al cargar visitas: ' + err.message)
+      } finally {
+        if (activo) setLoading(false)
+      }
+    }
+
+    cargar()
+    return () => { activo = false }
+  }, [])
+
+  const visitasFiltradas = useMemo(() => {
+    return visitas.filter(v => {
+      return (
+        v.extensionista_nombre.toLowerCase().includes(filterExtensionista.toLowerCase()) &&
+        v.propietario_nombre.toLowerCase().includes(filterPropietario.toLowerCase()) &&
+        (filterFecha === '' || new Date(v.fecha_visita).toLocaleDateString() === new Date(filterFecha).toLocaleDateString())
+      )
+    })
+  }, [visitas, filterExtensionista, filterPropietario, filterFecha])
+
+  async function handleGuardar(datos) {
+    try {
+      const res = await fetch('/api/visPendientes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      })
+      if (!res.ok) throw new Error('Error al modificar la visita')
+      setVisitas(prev => prev.map(v => v.id === datos.id ? { ...v, ...datos } : v))
+      alert('Visita modificada correctamente')
+    } catch (error) {
+      alert('Error: ' + error.message)
+    }
+  }
+
+  async function handleCancelar(id) {
+    if (!confirm('¿Estás seguro de que quieres cancelar esta visita?')) return
+    try {
+      const res = await fetch('/api/visPendientes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      if (!res.ok) throw new Error('Error al cancelar la visita')
+      setVisitas(prev => prev.filter(v => v.id !== id))
+      alert('Visita cancelada correctamente')
+    } catch (error) {
+      alert('Error: ' + error.message)
+    }
+  }
+
+  async function handleCompletar(id) {
+    if (!confirm('¿Quieres marcar esta visita como completada?')) return
+    try {
+      const res = await fetch('/api/updVisitas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      if (!res.ok) throw new Error('Error al actualizar la visita')
+      setVisitas(prev => prev.filter(v => v.id !== id))
+      alert('Visita marcada como completada')
+    } catch (error) {
+      alert('Error: ' + error.message)
+    }
+  }
+
+  const exportarPDF = () => {
+  const doc = new jsPDF()
+  doc.setFontSize(18)
+  doc.text('Listado de Visitas Pendientes', 14, 22)
+
+  const headers = [['Extensionista', 'Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad']]
+  const data = visitasFiltradas.map(v => [
+    v.extensionista_nombre,
+    v.propietario_nombre,
+    new Date(v.fecha_visita).toLocaleDateString('es-CL'),
+    v.hora_visita || '—',
+    v.actividad || '—',
+    v.comunidad_indigena ? (v.comunidad_nombre || 'Indígena') : 'No'
+  ])
+
+  autoTable(doc, {
+    startY: 30,
+    head: headers,
+    body: data,
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [16, 185, 129] },
+    theme: 'striped',
+  })
+
+  doc.save('visitas_pendientes.pdf')
+}
+
+  if (loading) return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
+      <p className="text-xl text-green-600 animate-pulse">Cargando visitas pendientes...</p>
+    </div>
+  )
+
+  if (error) return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
+      <p className="text-red-600">{error}</p>
+    </div>
+  )
+
+  return (
+    <div className="p-4 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        <h1 className="text-3xl font-bold text-green-800">Visitas Pendientes</h1>
+        <button onClick={exportarPDF}
+          className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg font-semibold transition">
+          Exportar a PDF
+        </button>
+        
+      </div>
+
+      {/* Filtros */}
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <input type="text" placeholder="Filtrar por Extensionista"
+          value={filterExtensionista} onChange={e => setFilterExtensionista(e.target.value)}
+          className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+        <input type="text" placeholder="Filtrar por Propietario"
+          value={filterPropietario} onChange={e => setFilterPropietario(e.target.value)}
+          className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+        <input type="date" value={filterFecha}
+          onChange={e => setFilterFecha(e.target.value)}
+          className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+      </div>
+
+      {/* Contador */}
+      <p className="text-sm text-gray-500 mb-4">
+        Mostrando <span className="font-semibold text-green-700">{visitasFiltradas.length}</span> visitas pendientes
+      </p>
+
+      {/* Tabla */}
+      <div className="overflow-x-auto border border-green-200 rounded-lg shadow-md">
+        <table className="min-w-full table-auto border-collapse">
+          <thead className="bg-green-50">
+            <tr>
+              {['Extensionista', 'Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad', 'Acciones'].map(h => (
+                <th key={h}
+                  className="border border-green-200 px-4 py-3 text-left text-sm font-semibold text-green-700 uppercase whitespace-nowrap">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visitasFiltradas.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-gray-500 font-semibold">
+                  No hay visitas pendientes.
+                </td>
+              </tr>
+            ) : (
+              visitasFiltradas.map(visita => (
+                <tr key={visita.id} className="hover:bg-green-50 transition-colors">
+                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.extensionista_nombre}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.propietario_nombre}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm whitespace-nowrap">
+                    {new Date(visita.fecha_visita).toLocaleDateString('es-CL')}
+                  </td>
+                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.hora_visita || '—'}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.actividad || '—'}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm">
+                    {visita.comunidad_indigena ? visita.comunidad_nombre || 'Indígena' : 'No'}
+                  </td>
+                  <td className="border border-green-200 px-4 py-3 text-sm">
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => setVisitaEditar(visita)}
+                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs font-medium transition">
+                        Modificar
+                      </button>
+                      <button onClick={() => handleCancelar(visita.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs font-medium transition">
+                        Cancelar
+                      </button>
+                      <button onClick={() => handleCompletar(visita.id)}
+                        className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 text-xs font-medium transition">
+                        Completada
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal editar */}
+      {visitaEditar && (
+        <ModalEditar
+          visita={visitaEditar}
+          onClose={() => setVisitaEditar(null)}
+          onGuardar={handleGuardar}
+        />
+      )}
     </div>
   )
 }

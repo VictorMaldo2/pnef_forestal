@@ -3,7 +3,7 @@ import { pool } from '../../../lib/db'   // Ruta relativa desde api/extPropietar
 
 export async function GET() {
   try {
-    const result = await pool.query('SELECT id, nombre, rut, comunidad_nombre, comuna FROM propietarios ORDER BY nombre ASC')
+    const result = await pool.query('SELECT id, nombre, rut, comunidad_indigena, comunidad_nombre, comuna, tipo_propietario FROM propietarios ORDER BY nombre ASC')
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error('Error en GET /api/extPropietarios:', error)

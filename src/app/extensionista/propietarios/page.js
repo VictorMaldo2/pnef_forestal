@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowLeftIcon, PlusIcon, UsersIcon, CalendarIcon, DocumentTextIcon, CogIcon } from '@heroicons/react/24/outline'
 
 export default function PropietariosAdminPage() {
   const router = useRouter()
@@ -111,6 +112,13 @@ export default function PropietariosAdminPage() {
         <button onClick={() => router.back()} className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
           ← Volver
         </button>
+        <button 
+            onClick={() => router.push('/extensionista/propietarios/agregar')}
+            className="w-full lg:w-auto flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
+          >
+            <PlusIcon className="h-5 w-5" />
+            Nuevo Propietario
+          </button>
       </div>
 
       <input

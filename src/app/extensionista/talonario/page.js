@@ -1,237 +1,350 @@
 'use client'
 
-import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 
-export default function TalonarioForm() {
+const actividadesOpciones = [
+  { value: 'recorrido_predial',          label: 'Recorrido predial' },
+  { value: 'forestacion',                label: 'Forestación' },
+  { value: 'interpretacion_ejecucion',   label: 'Interpretación ejecución plan de manejo' },
+  { value: 'diseno_trazado_senderos',    label: 'Diseño y trazado de senderos' },
+  { value: 'prevencion_incendios',       label: 'Prevención de Incendios Forestales' },
+  { value: 'prevencion_seguridad',       label: 'Prevención y seguridad en faena forestal' },
+  { value: 'medicion_volumenes',         label: 'Medición de volúmenes' },
+  { value: 'comercializacion',           label: 'Comercialización' },
+  { value: 'plan_secado_lena',           label: 'Plan de secado de leña' },
+  { value: 'medicion_humedad_lena',      label: 'Medición y registro de % Humedad de Leña' },
+  { value: 'seleccion_marcacion_bosque', label: 'Selección y marcación del bosque' },
+  { value: 'seguimiento_ejecucion',      label: 'Seguimiento ejecución de actividades' },
+  { value: 'costos_produccion',          label: 'Costos de producción y rendimientos' },
+  { value: 'diversificacion_productivo', label: 'Diversificación y E. productivo' },
+  { value: 'otro',                       label: 'Otro' },
+]
+
+const inputClass = "border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500"
+const labelClass = "block font-semibold mb-1 text-sm text-gray-700"
+const sectionClass = "bg-gray-50 border rounded p-4 space-y-4"
+const sectionTitle = "font-bold text-green-700 text-lg mb-3 border-b pb-2"
+
+export default function TalonarioTerrenoForm() {
+  const { data: session } = useSession()
+  const [propietarios, setPropietarios] = useState([])
+  const [propietarioSeleccionado, setPropietarioSeleccionado] = useState(null)
   const [form, setForm] = useState({
-    tipo_recurso: 'Bosque Nativo',
-    fecha: '',
     propietario_id: '',
-    rut_persona_presente: '',
+    nro_talonario: '',
+    tipo_recurso: '',
+    fecha: new Date().toISOString().split('T')[0],
+    punto_referencia_huso: '',
+    punto_referencia_este: '',
+    punto_referencia_norte: '',
     nombre_persona_presente: '',
     rol_persona_presente: '',
-    actividades_realizadas: {
-      recorrido_predial: false,
-      forestacion: false,
-      evaluacion_ejecucion: false,
-      plan_manejo: false,
-      otro: ''
-    },
-    supervisor: '',
+    actividades: [],
     observaciones: '',
-    recomendaciones: '',
-    medidas_prevencion: '',
-    productos_predio: {
-      carbon_sacos: '',
-      lena_m3: '',
-      madera_pulgadas: false,
-      visitantes: '',
-      otros: ''
-    },
-    firma_extensionista: '',
-    firma_persona_predio: ''
+    superficie_total_predio: '',
+    superficie_anual_planificada: '',
+    superficie_bajo_regimen: '',
+    superficie_avance_ejecucion: '',
+    recomendaciones_observaciones: '',
+    medidas_prevencion_incendios: '',
+    carbon_saco: '',
+    lena_m3: '',
+    madera_pulgada: '',
+    durmientes: '',
+    metros_rumas: '',
+    hojas_corteza: '',
+    visitantes_sendero: '',
+    productos_otro_1: '',
+    productos_otro_1_valor: '',
+    productos_otro_2: '',
+    productos_otro_2_valor: '',
+    firma_propietario: '',
   })
 
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  useEffect(() => {
+    async function fetchPropietarios() {
+      try {
+        const res = await fetch('/api/extPropietarios')
+        if (!res.ok) throw new Error('Error cargando propietarios.')
+        const data = await res.json()
+        setPropietarios(data)
+      } catch (error) {
+        alert(error.message)
+      }
+    }
+    fetchPropietarios()
+  }, [])
+
+  function handlePropietarioChange(e) {
+    const id = e.target.value
+    const prop = propietarios.find(p => p.id.toString() === id)
+    setPropietarioSeleccionado(prop || null)
+    setForm(prev => ({ ...prev, propietario_id: id }))
+  }
 
   function handleChange(e) {
-    const { name, value, type, checked } = e.target
+    const { name, value } = e.target
+    setForm(prev => ({ ...prev, [name]: value }))
+  }
 
-    if (name in form.actividades_realizadas) {
-      setForm({
-        ...form,
-        actividades_realizadas: {
-          ...form.actividades_realizadas,
-          [name]: type === 'checkbox' ? checked : value
-        }
-      })
-    } else if (name in form.productos_predio) {
-      setForm({
-        ...form,
-        productos_predio: {
-          ...form.productos_predio,
-          [name]: type === 'checkbox' ? checked : value
-        }
-      })
-    } else {
-      setForm({ ...form, [name]: value })
-    }
+  function handleActividadChange(e) {
+    const { value, checked } = e.target
+    setForm(prev => ({
+      ...prev,
+      actividades: checked
+        ? [...prev.actividades, value]
+        : prev.actividades.filter(a => a !== value)
+    }))
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
-    setSuccess('')
+    if (!form.propietario_id) return alert('Debe seleccionar un propietario.')
+    if (!form.tipo_recurso)   return alert('Debe seleccionar el tipo de recurso.')
+    if (form.actividades.length === 0) return alert('Debe seleccionar al menos una actividad.')
 
     try {
-      // Insertar en supabase
-      const { error } = await supabase.from('talonarios').insert({
-        tipo_recurso: form.tipo_recurso,
-        fecha: form.fecha,
-        propietario_id: form.propietario_id,
-        rut_persona_presente: form.rut_persona_presente,
-        nombre_persona_presente: form.nombre_persona_presente,
-        rol_persona_presente: form.rol_persona_presente,
-        actividades_realizadas: form.actividades_realizadas,
-        supervisor: form.supervisor,
-        observaciones: form.observaciones,
-        recomendaciones: form.recomendaciones,
-        medidas_prevencion: form.medidas_prevencion,
-        productos_predio: form.productos_predio,
-        firma_extensionista: form.firma_extensionista,
-        firma_persona_predio: form.firma_persona_predio
+      const res = await fetch('/api/talonario_terreno', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
       })
-
-      if (error) {
-        setError('Error al guardar el talonario: ' + error.message)
-        return
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Error desconocido')
       }
-
-      setSuccess('Talonario guardado exitosamente')
-      // Limpiar formulario o navegar, según prefieras
-    } catch (err) {
-      setError('Error inesperado: ' + err.message)
+      alert('Talonario registrado con éxito')
+    } catch (error) {
+      alert('Error: ' + error.message)
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
-      <h1 className="text-2xl font-bold mb-6">Formulario Talonario de Terreno</h1>
-      {error && <div className="mb-4 text-red-600">{error}</div>}
-      {success && <div className="mb-4 text-green-600">{success}</div>}
+    <div className="max-w-5xl mx-auto p-6 bg-white rounded shadow space-y-6">
+      <h1 className="text-3xl font-bold text-center text-green-800">Talonario de Terreno</h1>
+      <p className="text-center text-gray-500 text-sm">Programa Nacional de Extensión Forestal</p>
+
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Tipo de recurso */}
-        <label className="block">
-          <span className="font-semibold">Tipo de Recurso</span>
-          <select name="tipo_recurso" value={form.tipo_recurso} onChange={handleChange} className="w-full p-2 border rounded mt-1">
-            <option>Bosque Nativo</option>
-            <option>Plantaciones</option>
-          </select>
-        </label>
 
-        {/* Fecha */}
-        <label className="block">
-          <span className="font-semibold">Fecha</span>
-          <input type="date" name="fecha" value={form.fecha} onChange={handleChange} className="w-full p-2 border rounded mt-1" required />
-        </label>
-
-        {/* Propietario (debería ser select conectado a base de datos) */}
-        <label className="block">
-          <span className="font-semibold">Propietario ID</span>
-          <input
-            type="text"
-            name="propietario_id"
-            placeholder="ID propietario"
-            value={form.propietario_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded mt-1"
-            required
-          />
-        </label>
-
-        {/* Persona presente */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <label className="block">
-            <span className="font-semibold">Rut Persona Presente</span>
-            <input type="text" name="rut_persona_presente" value={form.rut_persona_presente} onChange={handleChange} className="w-full p-2 border rounded mt-1" required />
-          </label>
-          <label className="block">
-            <span className="font-semibold">Nombre Persona Presente</span>
-            <input type="text" name="nombre_persona_presente" value={form.nombre_persona_presente} onChange={handleChange} className="w-full p-2 border rounded mt-1" required />
-          </label>
-          <label className="block">
-            <span className="font-semibold">Rol Persona Presente</span>
-            <input type="text" name="rol_persona_presente" value={form.rol_persona_presente} onChange={handleChange} className="w-full p-2 border rounded mt-1" />
-          </label>
+        {/* Encabezado */}
+        <div className={sectionClass}>
+          <h2 className={sectionTitle}>Encabezado</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>N° Talonario</label>
+              <input name="nro_talonario" value={form.nro_talonario}
+                onChange={handleChange} className={inputClass} placeholder="N°" />
+            </div>
+            <div>
+              <label className={labelClass}>Fecha</label>
+              <input name="fecha" type="date" value={form.fecha}
+                onChange={handleChange} className={inputClass} required />
+            </div>
+            <div>
+              <label className={labelClass}>Tipo de Recurso</label>
+              <div className="flex gap-4 mt-3">
+                {[['bosque_nativo', 'Bosque Nativo'], ['plantaciones', 'Plantaciones']].map(([v, l]) => (
+                  <label key={v} className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="tipo_recurso" value={v}
+                      checked={form.tipo_recurso === v} onChange={handleChange}
+                      className="accent-green-600" />
+                    <span className="text-sm">{l}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Actividades realizadas (checkboxes) */}
-        <fieldset className="border p-4 rounded space-y-2">
-          <legend className="font-semibold mb-2">Actividades Realizadas</legend>
-          <label>
-            <input type="checkbox" name="recorrido_predial" checked={form.actividades_realizadas.recorrido_predial || false} onChange={handleChange} className="mr-2" />
-            Recorrido Predial
-          </label>
-          <label>
-            <input type="checkbox" name="forestacion" checked={form.actividades_realizadas.forestacion || false} onChange={handleChange} className="mr-2" />
-            Forestación
-          </label>
-          <label>
-            <input type="checkbox" name="evaluacion_ejecucion" checked={form.actividades_realizadas.evaluacion_ejecucion || false} onChange={handleChange} className="mr-2" />
-            Evaluación de Ejecución
-          </label>
-          <label>
-            <input type="checkbox" name="plan_manejo" checked={form.actividades_realizadas.plan_manejo || false} onChange={handleChange} className="mr-2" />
-            Plan de Manejo
-          </label>
-          <label>
-            Otra Actividad:
-            <input type="text" name="otro" value={form.actividades_realizadas.otro || ''} onChange={handleChange} className="ml-2 border p-1 rounded" />
-          </label>
-        </fieldset>
+        {/* Propietario */}
+        <div className={sectionClass}>
+          <h2 className={sectionTitle}>I. Antecedentes del Propietario</h2>
+          <div>
+            <label className={labelClass}>Propietario/a</label>
+            <select value={form.propietario_id} onChange={handlePropietarioChange}
+              required className={inputClass}>
+              <option value="">Seleccione un propietario</option>
+              {propietarios.map(p => (
+                <option key={p.id} value={p.id}>{p.nombre} — {p.rut}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Supervisor */}
-        <label className="block">
-          <span className="font-semibold">Supervisor</span>
-          <input type="text" name="supervisor" value={form.supervisor} onChange={handleChange} className="w-full p-2 border rounded mt-1" />
-        </label>
+          {/* Datos del propietario (solo lectura, desde la tabla propietarios) */}
+          {propietarioSeleccionado && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 bg-green-50 p-3 rounded text-sm">
+              <div><span className="font-semibold">RUT:</span> {propietarioSeleccionado.rut}</div>
+              <div><span className="font-semibold">Comuna:</span> {propietarioSeleccionado.comuna}</div>
+              <div><span className="font-semibold">Tipo:</span> {propietarioSeleccionado.tipo_propietario}</div>
+              <div><span className="font-semibold">Etnia:</span> {propietarioSeleccionado.comunidad_nombre || '—'}</div>
+            </div>
+          )}
 
-        {/* Observaciones, recomendaciones y medidas */}
-        <label className="block">
-          <span className="font-semibold">Observaciones</span>
-          <textarea name="observaciones" value={form.observaciones} onChange={handleChange} className="w-full p-2 border rounded mt-1" rows="3" />
-        </label>
+          {/* Punto de referencia */}
+          <div className="grid grid-cols-3 gap-4 mt-2">
+            <div>
+              <label className={labelClass}>HUSO</label>
+              <input name="punto_referencia_huso" value={form.punto_referencia_huso}
+                onChange={handleChange} className={inputClass} placeholder="HUSO" />
+            </div>
+            <div>
+              <label className={labelClass}>ESTE (m)</label>
+              <input name="punto_referencia_este" type="number" step="0.01"
+                value={form.punto_referencia_este} onChange={handleChange}
+                className={inputClass} placeholder="ESTE" />
+            </div>
+            <div>
+              <label className={labelClass}>NORTE (m)</label>
+              <input name="punto_referencia_norte" type="number" step="0.01"
+                value={form.punto_referencia_norte} onChange={handleChange}
+                className={inputClass} placeholder="NORTE" />
+            </div>
+          </div>
 
-        <label className="block">
-          <span className="font-semibold">Recomendaciones</span>
-          <textarea name="recomendaciones" value={form.recomendaciones} onChange={handleChange} className="w-full p-2 border rounded mt-1" rows="3" />
-        </label>
+          {/* Persona presente */}
+          <div>
+            <label className={labelClass}>Nombre persona presente en el predio</label>
+            <input name="nombre_persona_presente" value={form.nombre_persona_presente}
+              onChange={handleChange} className={inputClass} placeholder="Nombre completo" />
+          </div>
+          <div>
+            <label className={labelClass}>Rol de la persona presente</label>
+            <div className="flex flex-wrap gap-4 mt-1">
+              {[
+                ['propietario', 'Propietario/a'],
+                ['administrador', 'Administrador'],
+                ['trabajador', 'Trabajador/a'],
+                ['familiar', 'Familiar'],
+                ['otro', 'Otro'],
+              ].map(([v, l]) => (
+                <label key={v} className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="rol_persona_presente" value={v}
+                    checked={form.rol_persona_presente === v} onChange={handleChange}
+                    className="accent-green-600" />
+                  <span className="text-sm">{l}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
 
-        <label className="block">
-          <span className="font-semibold">Medidas de prevención y control</span>
-          <textarea name="medidas_prevencion" value={form.medidas_prevencion} onChange={handleChange} className="w-full p-2 border rounded mt-1" rows="3" />
-        </label>
+        {/* Actividades */}
+        <div className={sectionClass}>
+          <h2 className={sectionTitle}>Actividad / Producto Realizado</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {actividadesOpciones.map(({ value, label }) => (
+              <label key={value} className="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" value={value}
+                  checked={form.actividades.includes(value)}
+                  onChange={handleActividadChange}
+                  className="mt-1 accent-green-600" />
+                <span className="text-sm">{label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="mt-2">
+            <label className={labelClass}>Observaciones</label>
+            <textarea name="observaciones" value={form.observaciones}
+              onChange={handleChange} className={`${inputClass} h-24`}
+              placeholder="Observaciones de la actividad" />
+          </div>
+        </div>
+
+        {/* Antecedentes del predio */}
+        <div className={sectionClass}>
+          <h2 className={sectionTitle}>Antecedentes del Predio y Avances de Faena</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              ['superficie_total_predio',      'Superficie total (Ha)'],
+              ['superficie_anual_planificada', 'Sup. anual planificada (Ha)'],
+              ['superficie_bajo_regimen',      'Sup. bajo régimen (Ha)'],
+              ['superficie_avance_ejecucion',  'Avance ejecución (Ha o Km)'],
+            ].map(([name, label]) => (
+              <div key={name}>
+                <label className={labelClass}>{label}</label>
+                <input name={name} value={form[name]} onChange={handleChange}
+                  className={inputClass} placeholder="—"
+                  type={name === 'superficie_avance_ejecucion' ? 'text' : 'number'}
+                  step="0.01" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Secciones II y III */}
+        <div className={sectionClass}>
+          <h2 className={sectionTitle}>II. Recomendaciones y Observaciones</h2>
+          <textarea name="recomendaciones_observaciones"
+            value={form.recomendaciones_observaciones} onChange={handleChange}
+            className={`${inputClass} h-24`} placeholder="Recomendaciones y observaciones" />
+
+          <h2 className={`${sectionTitle} mt-4`}>III. Medidas de Prevención y Control de Incendios</h2>
+          <textarea name="medidas_prevencion_incendios"
+            value={form.medidas_prevencion_incendios} onChange={handleChange}
+            className={`${inputClass} h-24`} placeholder="Medidas de prevención de incendios" />
+        </div>
 
         {/* Productos del predio */}
-        <fieldset className="border p-4 rounded space-y-2">
-          <legend className="font-semibold mb-2">Productos del Predio</legend>
-          <label>
-            Cantidad de Sacos de Carbón:
-            <input type="number" name="carbon_sacos" value={form.productos_predio.carbon_sacos || ''} onChange={handleChange} className="ml-2 border p-1 rounded w-20" min="0" />
-          </label>
-          <label>
-            Cantidad de m3 de Leña:
-            <input type="number" name="lena_m3" value={form.productos_predio.lena_m3 || ''} onChange={handleChange} className="ml-2 border p-1 rounded w-20" min="0" />
-          </label>
-          <label>
-            Madera en pulgadas (Sí/No):
-            <input type="checkbox" name="madera_pulgadas" checked={form.productos_predio.madera_pulgadas || false} onChange={handleChange} className="ml-2" />
-          </label>
-          <label>
-            Número de visitantes:
-            <input type="number" name="visitantes" value={form.productos_predio.visitantes || ''} onChange={handleChange} className="ml-2 border p-1 rounded w-20" min="0" />
-          </label>
-          <label>
-            Otros productos:
-            <input type="text" name="otros" value={form.productos_predio.otros || ''} onChange={handleChange} className="ml-2 border p-1 rounded w-full" />
-          </label>
-        </fieldset>
+        <div className={sectionClass}>
+          <h2 className={sectionTitle}>Productos del Predio</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              ['carbon_saco',        'Carbón (saco)'],
+              ['lena_m3',            'Leña (m3)'],
+              ['madera_pulgada',     'Madera (Pulgada)'],
+              ['durmientes',         'Durmientes'],
+              ['metros_rumas',       'Metros Rumas'],
+              ['hojas_corteza',      'Hojas / Corteza'],
+              ['visitantes_sendero', 'Visitantes (sendero)'],
+            ].map(([name, label]) => (
+              <div key={name}>
+                <label className={labelClass}>{label}</label>
+                <input name={name} type="number" step="0.01"
+                  value={form[name]} onChange={handleChange}
+                  className={inputClass} placeholder="0" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div>
+              <label className={labelClass}>Otro 1 — Nombre</label>
+              <input name="productos_otro_1" value={form.productos_otro_1}
+                onChange={handleChange} className={inputClass} placeholder="Nombre" />
+            </div>
+            <div>
+              <label className={labelClass}>Otro 1 — Cantidad</label>
+              <input name="productos_otro_1_valor" type="number" step="0.01"
+                value={form.productos_otro_1_valor} onChange={handleChange}
+                className={inputClass} placeholder="0" />
+            </div>
+            <div>
+              <label className={labelClass}>Otro 2 — Nombre</label>
+              <input name="productos_otro_2" value={form.productos_otro_2}
+                onChange={handleChange} className={inputClass} placeholder="Nombre" />
+            </div>
+            <div>
+              <label className={labelClass}>Otro 2 — Cantidad</label>
+              <input name="productos_otro_2_valor" type="number" step="0.01"
+                value={form.productos_otro_2_valor} onChange={handleChange}
+                className={inputClass} placeholder="0" />
+            </div>
+          </div>
+        </div>
 
-        {/* Firmas */}
-        <label className="block">
-          <span className="font-semibold">Firma Extensionista (URL o texto)</span>
-          <input type="text" name="firma_extensionista" value={form.firma_extensionista} onChange={handleChange} className="w-full p-2 border rounded mt-1" />
-        </label>
+        {/* Firma */}
+        <div className={sectionClass}>
+          <h2 className={sectionTitle}>Firma</h2>
+          <div>
+            <label className={labelClass}>Firma Propietario / Persona presente</label>
+            <input name="firma_propietario" value={form.firma_propietario}
+              onChange={handleChange} className={inputClass} placeholder="Firma" />
+          </div>
+        </div>
 
-        <label className="block">
-          <span className="font-semibold">Firma Persona Predio (URL o texto)</span>
-          <input type="text" name="firma_persona_predio" value={form.firma_persona_predio} onChange={handleChange} className="w-full p-2 border rounded mt-1" />
-        </label>
-
-        <button type="submit" className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded mt-4">
-          Guardar Talonario
+        <button type="submit"
+          className="bg-green-600 text-white py-3 px-6 rounded hover:bg-green-700 transition w-full text-lg font-semibold">
+          Registrar Talonario
         </button>
       </form>
     </div>
