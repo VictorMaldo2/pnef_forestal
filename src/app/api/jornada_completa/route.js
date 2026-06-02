@@ -15,7 +15,10 @@ export async function GET() {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Talonarios — todos los campos
+    const esAdmin = session.user.roleId === 1
+    const id      = session.user.id
+
+    // Talonarios
     const talonarios = await pool.query(`
       SELECT
         tt.*,
@@ -29,10 +32,11 @@ export async function GET() {
       FROM talonario_terreno tt
       LEFT JOIN propietarios p ON p.id = tt.propietario_id
       LEFT JOIN usuarios     u ON u.id::text = tt.extensionista_id::text
+      ${!esAdmin ? `WHERE tt.extensionista_id::text = $1` : ''}
       ORDER BY tt.fecha DESC
-    `)
+    `, !esAdmin ? [id] : [])
 
-    // Jornadas de marcación — todos los campos
+    // Jornadas de marcación
     const marcaciones = await pool.query(`
       SELECT
         jm.*,
@@ -46,8 +50,9 @@ export async function GET() {
       FROM jornada_marcacion jm
       LEFT JOIN propietarios p ON p.id = jm.propietario_id
       LEFT JOIN usuarios     u ON u.id::text = jm.extensionista_id::text
+      ${!esAdmin ? `WHERE jm.extensionista_id::text = $1` : ''}
       ORDER BY jm.fecha_jornada DESC
-    `)
+    `, !esAdmin ? [id] : [])
 
     const data = [...talonarios.rows, ...marcaciones.rows].sort(
       (a, b) => new Date(b.fecha) - new Date(a.fecha)

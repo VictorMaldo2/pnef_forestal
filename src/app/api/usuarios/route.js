@@ -52,8 +52,8 @@ export async function POST(request) {
     await client.query('BEGIN')
 
     await client.query(
-      'INSERT INTO auth_users (id, email, hashed_password) VALUES ($1, $2, $3)',
-      [id, email, hashed]
+      'INSERT INTO auth_users (id, email, hashed_password, nombre, role_id) VALUES ($1, $2, $3, $4,$5)',
+      [id, email, hashed, nombre || null, role_id]
     )
 
     await client.query(

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 const actividadesOpciones = [
   { value: 'supresion_de_especies_exoticas', label: 'Supresión de Especies Exóticas' },
@@ -22,6 +23,7 @@ const actividadesOpciones = [
 
 export default function JornadaMarcacionForm() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [propietarios, setPropietarios] = useState([])
   const [form, setForm] = useState({
     propietario_id: '',
@@ -126,7 +128,6 @@ export default function JornadaMarcacionForm() {
       return
     }
 
-    // Si seleccionó "Otras", reemplaza ese valor por el texto escrito
     const actividadesFinal = form.actividades.includes('actividades_otros')
       ? [
           ...form.actividades.filter(a => a !== 'actividades_otros'),
@@ -173,8 +174,6 @@ export default function JornadaMarcacionForm() {
       }
 
       alert('Jornada registrada con éxito')
-      // Opcional: resetear formulario
-      // setForm({ ...estadoInicial })
     } catch (error) {
       alert('Error al enviar los datos: ' + error.message)
     }
@@ -182,6 +181,15 @@ export default function JornadaMarcacionForm() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded shadow">
+
+      {/* ← ÚNICO CAMBIO: botón volver */}
+      <button
+        onClick={() => router.push('/extensionista')}
+        className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition mb-4"
+      >
+        ← Volver al Dashboard
+      </button>
+
       <h1 className="text-3xl font-bold mb-6 text-center">Registrar Jornada de Marcación</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
 

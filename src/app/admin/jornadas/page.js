@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 
 const TIPO_LABEL = {
   talonario: { label: 'Talonario de Terreno', color: 'bg-blue-100 text-blue-700' },
@@ -15,6 +16,7 @@ function Modal({ jornada, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        
 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
@@ -192,7 +194,6 @@ function Texto({ label, valor }) {
 }
 
 function ListaArray({ items }) {
-  // Normalizar: si llega como string, convertir a array
   const lista = Array.isArray(items)
     ? items
     : typeof items === 'string'
@@ -221,6 +222,7 @@ function formatFecha(fecha) {
 // ─── Página principal ───────────────────────────────────────────────────────
 
 export default function JornadasTotalesPage() {
+  const router = useRouter()
   const [jornadas, setJornadas]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [jornadaModal, setJornadaModal] = useState(null)
@@ -271,13 +273,21 @@ export default function JornadasTotalesPage() {
     setFiltroFechaHasta('')
   }
 
-  // Abrir modal: busca el registro completo por id+tipo
   async function verDetalle(jornada) {
     setJornadaModal(jornada)
   }
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+
+      
+      <button
+        onClick={() => router.push('/admin')}
+        className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition"
+      >
+        ← Volver al Dashboard
+      </button>
+
       <h1 className="text-3xl font-bold text-green-800">Jornadas Totales</h1>
       <p className="text-gray-500 text-sm">
         Talonarios de terreno y jornadas de marcación registradas

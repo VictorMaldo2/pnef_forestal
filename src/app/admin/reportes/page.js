@@ -1,314 +1,560 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 
-const ESTADO_COLOR = {
-  pendiente:  'bg-yellow-100 text-yellow-700',
-  completada: 'bg-green-100 text-green-700',
-  cancelada:  'bg-red-100 text-red-700',
+function fmt(n) { return n != null ? Number(n).toLocaleString('es-CL') : '—' }
+
+const MES_LABEL = {
+  '01':'Ene','02':'Feb','03':'Mar','04':'Abr','05':'May','06':'Jun',
+  '07':'Jul','08':'Ago','09':'Sep','10':'Oct','11':'Nov','12':'Dic',
+}
+function mesCorto(yyyymm) {
+  if (!yyyymm) return ''
+  const [, m] = yyyymm.split('-')
+  return MES_LABEL[m] || yyyymm
 }
 
-function ModalVisitas({ propietario, onClose }) {
-  const [visitas, setVisitas] = useState([])
-  const [loading, setLoading] = useState(true)
+function KpiCard({ label, value, sub }) {
+  return (
+    <div className="bg-gray-50 rounded-lg p-4">
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className="text-2xl font-bold text-green-700">{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+    </div>
+  )
+}
+
+function BarraHorizontal({ label, valor, max, sufijo = '' }) {
+  const pct = max > 0 ? Math.round((valor / max) * 100) : 0
+  return (
+    <div className="flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
+      <span className="text-sm text-gray-700 w-48 truncate shrink-0">{label}</span>
+      <div className="flex-1 bg-gray-100 rounded h-2 overflow-hidden">
+        <div className="h-2 rounded transition-all"
+          style={{ width: `${pct}%`, background: valor === 0 ? '#e5e7eb' : '#22c55e' }} />
+      </div>
+      <span className={`text-sm w-16 text-right shrink-0 ${valor === 0 ? 'text-gray-300' : 'text-gray-600'}`}>
+        {fmt(valor)}{sufijo}
+      </span>
+    </div>
+  )
+}
+
+function TablaActividades({ actividades, totalJornadas }) {
+  const max = Math.max(...actividades.map(a => a.total), 1)
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="border-b">
+            <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Actividad</th>
+            <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase w-20">Veces</th>
+            <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase w-16">%</th>
+            <th className="py-2 px-3 w-40"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {actividades.map((a, i) => {
+            const pct = totalJornadas > 0 ? Math.round((a.total / totalJornadas) * 100) : 0
+            const barPct = Math.round((a.total / max) * 100)
+            return (
+              <tr key={a.value} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                <td className={`py-2 px-3 ${a.total === 0 ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {a.label}
+                </td>
+                <td className={`py-2 px-3 text-right font-bold ${a.total === 0 ? 'text-gray-300' : 'text-green-700'}`}>
+                  {a.total}
+                </td>
+                <td className={`py-2 px-3 text-right text-xs ${a.total === 0 ? 'text-gray-300' : 'text-gray-500'}`}>
+                  {pct}%
+                </td>
+                <td className="py-2 px-3">
+                  <div className="bg-gray-100 rounded h-1.5 overflow-hidden">
+                    <div className="h-1.5 rounded transition-all"
+                      style={{ width: `${barPct}%`, background: a.total === 0 ? '#e5e7eb' : '#22c55e' }} />
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function GraficoMes({ datos }) {
+  if (!datos?.length) return <p className="text-sm text-gray-400 text-center py-8">Sin datos</p>
+  const maxVal = Math.max(...datos.map(d => (d.talonarios || 0) + (d.marcaciones || 0)), 1)
+  return (
+    <div className="flex items-end gap-2 h-32 pt-2">
+      {datos.map(d => {
+        const total = (d.talonarios || 0) + (d.marcaciones || 0)
+        const hT = Math.round((d.talonarios / maxVal) * 100)
+        const hM = Math.round((d.marcaciones / maxVal) * 100)
+        return (
+          <div key={d.mes} className="flex-1 flex flex-col items-center gap-1">
+            <span className="text-xs text-gray-400">{total}</span>
+            <div className="w-full flex flex-col justify-end" style={{ height: '80px' }}>
+              <div className="w-full bg-blue-200 rounded-t" style={{ height: `${hM}%` }} />
+              <div className="w-full bg-green-400 rounded-t" style={{ height: `${hT}%` }} />
+            </div>
+            <span className="text-xs text-gray-400">{mesCorto(d.mes)}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function ReportesPage() {
+  const router     = useRouter()
+  const reporteRef = useRef(null)
+
+  const [data, setData]         = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState('')
+  const [exportando, setExportando] = useState(false)
+  const [desde, setDesde]       = useState('')
+  const [hasta, setHasta]       = useState('')
+  const [extensionista, setExtensionista] = useState('')
+  const [comuna, setComuna]     = useState('')
+  const [propietario, setPropietario]   = useState('')
+  const [comunidad, setComunidad]       = useState('')
 
   useEffect(() => {
-    if (!propietario) return
-    async function fetchVisitas() {
+    let cancelado = false
+
+    async function fetchData() {
+      setLoading(true)
+      setError('')
       try {
-        const res = await fetch(`/api/visitas_propietarios?propietario_id=${propietario.id}`)
-        if (!res.ok) throw new Error('Error cargando visitas')
-        const data = await res.json()
-        setVisitas(data)
-      } catch (error) {
-        alert(error.message)
+        const params = new URLSearchParams()
+        if (desde)         params.set('desde', desde)
+        if (hasta)         params.set('hasta', hasta)
+        if (extensionista) params.set('extensionista', extensionista)
+        if (comuna)        params.set('comuna', comuna)
+        if (propietario)   params.set('propietario', propietario)
+        if (comunidad)     params.set('comunidad', comunidad)
+
+        const res = await fetch(`/api/reportes?${params}`)
+        if (!res.ok) throw new Error('Error cargando reportes')
+        const json = await res.json()
+        if (!cancelado) setData(json)
+      } catch (e) {
+        if (!cancelado) setError(e.message)
       } finally {
-        setLoading(false)
+        if (!cancelado) setLoading(false)
       }
     }
-    fetchVisitas()
-  }, [propietario])
 
-  if (!propietario) return null
+    fetchData()
+    return () => { cancelado = true }
+  }, [desde, hasta, extensionista, comuna, propietario, comunidad])
+
+  function limpiar() {
+    setDesde(''); setHasta(''); setExtensionista('')
+    setComuna(''); setPropietario(''); setComunidad('')
+  }
+
+  async function exportarPDF() {
+    if (!data || !reporteRef.current) return
+    setExportando(true)
+    try {
+      const html2canvas = (await import('html2canvas-pro')).default
+      const { jsPDF }   = await import('jspdf')
+
+      const canvas = await html2canvas(reporteRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      })
+
+      const imgData    = canvas.toDataURL('image/png')
+      const doc        = new jsPDF('p', 'mm', 'a4')
+      const pageWidth  = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const imgWidth   = pageWidth
+      const imgHeight  = (canvas.height * pageWidth) / canvas.width
+      let posY = 0
+
+      while (posY < imgHeight) {
+        doc.addImage(imgData, 'PNG', 0, -posY, imgWidth, imgHeight)
+        posY += pageHeight
+        if (posY < imgHeight) doc.addPage()
+      }
+
+      doc.save('reporte_jornadas.pdf')
+    } catch (e) {
+      alert('Error al exportar: ' + e.message)
+    } finally {
+      setExportando(false)
+    }
+  }
+
+  const kpis      = data?.kpis
+  const maxComuna = Math.max(...(data?.porComuna?.map(r => r.jornadas) || [0]))
+  const maxExt    = Math.max(...(data?.porExtensionista?.map(r => r.jornadas) || [0]))
+  const maxAct    = Math.max(...(data?.actividades?.map(r => r.total) || [0]))
+  const maxActV   = Math.max(...(data?.actividadesVisitas?.map(r => r.total) || [0]))
+  const pctEjec   = kpis?.sup_planificada > 0
+    ? Math.round((kpis.sup_ejecutada / kpis.sup_planificada) * 100) : 0
+
+  const inputClass = "border p-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-full"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div className="bg-white">
 
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
-          <div>
-            <p className="text-sm text-gray-500">Visitas de</p>
-            <h2 className="text-xl font-bold text-green-800">{propietario.nombre}</h2>
-            <p className="text-sm text-gray-400">{propietario.rut}</p>
+      {/* Botones fuera del ref para que no salgan en el PDF */}
+      <div className="max-w-7xl mx-auto px-6 pt-6 flex items-center justify-between">
+        <div>
+          <button onClick={() => router.push('/admin')}
+            className="text-green-700 hover:text-green-900 text-sm font-medium mb-2 flex items-center gap-1">
+            ← Volver al Dashboard
+          </button>
+          <h1 className="text-3xl font-bold text-green-800">Reportes</h1>
+          <p className="text-gray-500 text-sm">Jornadas de terreno, marcación y visitas — PNEF</p>
+        </div>
+        <button
+          onClick={exportarPDF}
+          disabled={exportando || !data}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+          {exportando ? '⏳ Generando PDF...' : '📄 Exportar PDF'}
+        </button>
+      </div>
+
+      {/* Todo lo que va dentro del PDF */}
+      <div ref={reporteRef} className="max-w-7xl mx-auto p-6 space-y-6 bg-white">
+
+        {/* Filtros */}
+        <div className="bg-gray-50 border rounded p-4 space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Desde</label>
+              <input type="date" value={desde} onChange={e => setDesde(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Hasta</label>
+              <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Extensionista</label>
+              <select value={extensionista} onChange={e => setExtensionista(e.target.value)} className={inputClass}>
+                <option value="">Todos</option>
+                {data?.extensionistas?.map(e => <option key={e} value={e}>{e}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Comuna</label>
+              <select value={comuna} onChange={e => setComuna(e.target.value)} className={inputClass}>
+                <option value="">Todas</option>
+                {data?.comunas?.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Propietario</label>
+              <select value={propietario} onChange={e => setPropietario(e.target.value)} className={inputClass}>
+                <option value="">Todos</option>
+                {data?.propietarios?.map(p => (
+                  <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Comunidad indígena</label>
+              <select value={comunidad} onChange={e => setComunidad(e.target.value)} className={inputClass}>
+                <option value="">Todas</option>
+                {data?.comunidades?.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <button onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">
-            ✕
+          <button onClick={limpiar} className="text-sm text-gray-500 hover:text-gray-700 underline">
+            Limpiar filtros
           </button>
         </div>
 
-        <div className="p-6">
-          {loading ? (
-            <p className="text-center text-gray-400 py-10">Cargando visitas...</p>
-          ) : visitas.length === 0 ? (
-            <p className="text-center text-gray-400 py-10">Este propietario no tiene visitas registradas.</p>
-          ) : (
-            <div className="space-y-4">
-              {/* Resumen */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {['pendiente', 'completada', 'cancelada'].map(estado => (
-                  <div key={estado} className={`rounded-lg p-3 text-center ${ESTADO_COLOR[estado] || 'bg-gray-100'}`}>
-                    <p className="text-2xl font-bold">
-                      {visitas.filter(v => v.estado === estado).length}
-                    </p>
-                    <p className="text-xs capitalize">{estado}s</p>
-                  </div>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+
+        {loading ? (
+          <div className="text-center py-20 text-gray-400 animate-pulse">Cargando reporte...</div>
+        ) : (
+          <>
+            {/* ── Jornadas ────────────────────────────────────────────────── */}
+            <h2 className="text-xl font-bold text-green-800">Jornadas de terreno</h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <KpiCard label="Total jornadas"      value={fmt(kpis?.total)} />
+              <KpiCard label="Talonarios"          value={fmt(kpis?.talonarios)} />
+              <KpiCard label="Marcaciones"         value={fmt(kpis?.marcaciones)} />
+              <KpiCard label="Propietarios"        value={fmt(kpis?.propietarios)} />
+              <KpiCard label="Sup. total (Ha)"     value={fmt(kpis?.sup_total)} />
+              <KpiCard label="Sup. ejecutada (Ha)" value={fmt(kpis?.sup_ejecutada)}
+                sub={kpis?.sup_planificada ? `de ${fmt(kpis.sup_planificada)} Ha planificadas` : ''} />
+            </div>
+
+            {kpis?.sup_planificada > 0 && (
+              <div className="bg-white border rounded p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2">
+                  Avance superficie — {pctEjec}% ejecutado
+                </p>
+                <div className="bg-gray-100 rounded h-4 overflow-hidden">
+                  <div className="h-4 bg-green-500 rounded transition-all"
+                    style={{ width: `${Math.min(pctEjec, 100)}%` }} />
+                </div>
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>0 Ha</span>
+                  <span>{fmt(kpis.sup_planificada)} Ha planificadas</span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white border rounded p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Jornadas por mes</p>
+                <GraficoMes datos={data?.porMes} />
+                <div className="flex gap-4 mt-2">
+                  <span className="flex items-center gap-1 text-xs text-gray-500">
+                    <span className="w-3 h-3 bg-green-400 rounded inline-block" /> Talonarios
+                  </span>
+                  <span className="flex items-center gap-1 text-xs text-gray-500">
+                    <span className="w-3 h-3 bg-blue-200 rounded inline-block" /> Marcaciones
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white border rounded p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Top 10 actividades combinadas</p>
+                {data?.actividades?.map(a => (
+                  <BarraHorizontal key={a.actividad} label={a.actividad} valor={a.total} max={maxAct} />
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border rounded overflow-hidden">
+              <div className="p-4 border-b bg-gray-50">
+                <p className="text-sm font-semibold text-gray-700">Rendimiento por extensionista</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-green-700 text-white">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Extensionista</th>
+                      <th className="px-4 py-3 text-left">Jornadas</th>
+                      <th className="px-4 py-3 text-left">Propietarios</th>
+                      <th className="px-4 py-3 text-left">Sup. total (Ha)</th>
+                      <th className="px-4 py-3 text-left">Participación</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data?.porExtensionista?.map((r, i) => (
+                      <tr key={r.extensionista_nombre} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="px-4 py-3 font-medium">{r.extensionista_nombre || '—'}</td>
+                        <td className="px-4 py-3">{fmt(r.jornadas)}</td>
+                        <td className="px-4 py-3">{fmt(r.propietarios)}</td>
+                        <td className="px-4 py-3">{fmt(r.sup_total)}</td>
+                        <td className="px-4 py-3 w-40">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-gray-100 rounded h-1.5 overflow-hidden">
+                              <div className="h-1.5 bg-green-500 rounded"
+                                style={{ width: `${maxExt > 0 ? Math.round((r.jornadas / maxExt) * 100) : 0}%` }} />
+                            </div>
+                            <span className="text-xs text-gray-400 w-8 text-right">
+                              {kpis?.total > 0 ? Math.round((r.jornadas / kpis.total) * 100) : 0}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white border rounded p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Cobertura por comuna</p>
+                {data?.porComuna?.map(r => (
+                  <BarraHorizontal key={r.comuna} label={r.comuna || '—'}
+                    valor={r.jornadas} max={maxComuna} sufijo=' jornadas' />
                 ))}
               </div>
 
-              {/* Lista de visitas */}
-              {visitas.map(v => (
-                <div key={v.id} className="border rounded-lg p-4 space-y-2 hover:bg-gray-50 transition">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-gray-700">
-                        {v.fecha_visita
-                          ? new Date(v.fecha_visita).toLocaleDateString('es-CL')
-                          : '—'}
-                      </span>
-                      {v.hora_visita && (
-                        <span className="text-xs text-gray-400">{v.hora_visita}</span>
-                      )}
-                    </div>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${ESTADO_COLOR[v.estado] || 'bg-gray-100 text-gray-600'}`}>
-                      {v.estado || '—'}
+              <div className="bg-white border rounded p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Productos del predio — acumulado</p>
+                {[
+                  ['Leña',         data?.productos?.lena_m3,        'm³'],
+                  ['Carbón',       data?.productos?.carbon_saco,    'sacos'],
+                  ['Madera',       data?.productos?.madera_pulgada, 'pulg.'],
+                  ['Durmientes',   data?.productos?.durmientes,     'un.'],
+                  ['Metros rumas', data?.productos?.metros_rumas,   'm'],
+                ].map(([label, valor, unidad]) => (
+                  <div key={label} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0">
+                    <span className="text-gray-500">{label}</span>
+                    <span className="font-medium text-gray-800">
+                      {valor != null && valor > 0 ? `${fmt(valor)} ${unidad}` : '—'}
                     </span>
                   </div>
+                ))}
+              </div>
+            </div>
 
-                  {v.actividad && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <span className="text-gray-400 shrink-0">Actividad:</span>
-                      <span className="text-gray-700 font-medium">{v.actividad}</span>
-                    </div>
-                  )}
+            {/* ── Actividades completas ──────────────────────────────────── */}
+            <div className="border-t pt-6 space-y-4">
+              <h2 className="text-xl font-bold text-green-800">Detalle de actividades</h2>
+              <p className="text-sm text-gray-500">
+                Todas las actividades posibles y cuántas veces fueron realizadas en el período.
+                Las actividades en gris no tienen registros.
+              </p>
 
-                  {v.extensionista_nombre && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <span className="text-gray-400 shrink-0">Extensionista:</span>
-                      <span className="text-gray-700">{v.extensionista_nombre}</span>
-                    </div>
-                  )}
-
-                  {v.observaciones && (
-                    <div className="text-sm bg-gray-50 rounded p-2 text-gray-600">
-                      <span className="text-gray-400 block mb-1">Observaciones:</span>
-                      {v.observaciones}
-                    </div>
-                  )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white border rounded overflow-hidden">
+                  <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-700">Talonario de Terreno</p>
+                    <span className="text-xs text-gray-400">
+                      {data?.actividadesTalonario?.filter(a => a.total > 0).length} de{' '}
+                      {data?.actividadesTalonario?.length} realizadas
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <TablaActividades
+                      actividades={data?.actividadesTalonario || []}
+                      totalJornadas={kpis?.talonarios || 0}
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
 
-export default function ExtensionistaDashboard() {
-  const router = useRouter()
-  const [busqueda, setBusqueda] = useState('')
-  const [propietarios, setPropietarios] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [propietarioModal, setPropietarioModal] = useState(null)
-
-  useEffect(() => {
-    async function loadPropietarios() {
-      try {
-        setLoading(true)
-        const res = await fetch('/api/admpropietarios')
-        if (!res.ok) throw new Error('Error al obtener propietarios')
-        const data = await res.json()
-        setPropietarios(data)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadPropietarios()
-  }, [])
-
-  const propietariosFiltrados = useMemo(() => {
-    const q = busqueda.toLowerCase()
-    return propietarios.filter(
-      p => p.nombre.toLowerCase().includes(q) || p.rut.includes(busqueda)
-    )
-  }, [busqueda, propietarios])
-
-  const exportarPDF = () => {
-    const doc = new jsPDF()
-    doc.setFontSize(20)
-    doc.text('Listado de Propietarios', 14, 20)
-    const headers = [['#', 'Nombre', 'RUT', 'Comunidad', 'Género', 'Comuna', 'Tipo', 'Visitas Pendientes']]
-    const data = propietariosFiltrados.map((p, i) => [
-      i + 1,
-      p.nombre || 'N/A',
-      p.rut || 'N/A',
-      p.comunidad_indigena ? (p.comunidad_indigena || 'Indígena') : 'No',
-      p.genero || 'N/A',
-      p.comuna || 'N/A',
-      p.tipo_propietario || 'N/A',
-      p.visitas_pendientes ?? 0
-    ])
-    autoTable(doc, {
-      startY: 30, head: headers, body: data,
-      headStyles: { fillColor: [16, 185, 129] },
-      styles: { fontSize: 9 }, theme: 'striped',
-      margin: { left: 10, right: 10 }
-    })
-    doc.save('propietarios_pnef.pdf')
-  }
-
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p className="text-green-700 animate-pulse text-lg">Cargando propietarios...</p>
-    </div>
-  )
-
-  if (error) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p className="text-red-600 text-lg">Error: {error}</p>
-    </div>
-  )
-
-  return (
-    <div className="min-h-screen bg-green-50 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 lg:gap-0 mb-6 pb-6 border-b border-green-100">
-          <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-800 leading-tight">
-              Panel Administrativo
-            </h1>
-            <p className="text-green-600 text-sm sm:text-base mt-1">Gestión de propietarios</p>
-          </div>
-          <button onClick={() => router.push('/admin')}
-            className="w-full lg:w-auto bg-green-600 text-white rounded-lg px-4 py-2.5 hover:bg-green-700 transition-colors text-sm font-medium shadow-sm">
-            ← Volver
-          </button>
-        </div>
-
-        {/* Indicadores */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-          <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-xl shadow-sm border border-green-200 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold mb-1 text-gray-800">Propietarios</h3>
-                <p className="text-3xl sm:text-4xl font-bold text-green-600">{propietarios.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <span className="text-green-600 text-xl">👥</span>
+                <div className="bg-white border rounded overflow-hidden">
+                  <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-700">Jornada de Marcación</p>
+                    <span className="text-xs text-gray-400">
+                      {data?.actividadesMarcacion?.filter(a => a.total > 0).length} de{' '}
+                      {data?.actividadesMarcacion?.length} realizadas
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <TablaActividades
+                      actividades={data?.actividadesMarcacion || []}
+                      totalJornadas={kpis?.marcaciones || 0}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Buscador */}
-        <div className="mb-6">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <span className="text-gray-400 text-lg">🔍</span>
+            {/* ── Visitas ───────────────────────────────────────────────── */}
+            <div className="border-t pt-6 space-y-6">
+              <h2 className="text-xl font-bold text-green-800">Visitas a propietarios</h2>
+
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <KpiCard label="Total visitas"          value={fmt(data?.kpiVisitas?.total)} />
+                <KpiCard label="Completadas"            value={fmt(data?.kpiVisitas?.completadas)} />
+                <KpiCard label="Pendientes"             value={fmt(data?.kpiVisitas?.pendientes)} />
+                <KpiCard label="Canceladas"             value={fmt(data?.kpiVisitas?.canceladas)} />
+                <KpiCard label="Propietarios visitados" value={fmt(data?.kpiVisitas?.propietarios_con_visita)} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white border rounded p-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Visitas por extensionista</p>
+                  {data?.visitasPorExtensionista?.map((r, i) => (
+                    <div key={r.extensionista_nombre}
+                      className={`flex justify-between items-center py-2 border-b border-gray-50 last:border-0 text-sm ${i % 2 === 0 ? '' : 'bg-gray-50'}`}>
+                      <span className="text-gray-700 font-medium w-36 truncate shrink-0">
+                        {r.extensionista_nombre || '—'}
+                      </span>
+                      <div className="flex gap-2 text-xs">
+                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{r.completadas} ✓</span>
+                        <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">{r.pendientes} ⏳</span>
+                        <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">{r.canceladas} ✗</span>
+                      </div>
+                      <span className="text-gray-400 text-xs shrink-0">{r.propietarios_visitados} prop.</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-white border rounded p-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Actividades en visitas</p>
+                  {data?.actividadesVisitas?.length
+                    ? data.actividadesVisitas.map(a => (
+                        <BarraHorizontal key={a.actividad} label={a.actividad} valor={a.total} max={maxActV} />
+                      ))
+                    : <p className="text-sm text-gray-400">Sin datos</p>
+                  }
+                </div>
+              </div>
+
+              <div className="bg-white border rounded overflow-hidden">
+                <div className="p-4 border-b bg-gray-50">
+                  <p className="text-sm font-semibold text-gray-700">
+                    Detalle por propietario ({data?.visitasPorPropietario?.length || 0})
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-green-700 text-white">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Propietario</th>
+                        <th className="px-4 py-3 text-left">RUT</th>
+                        <th className="px-4 py-3 text-left">Comuna</th>
+                        <th className="px-4 py-3 text-left">Comunidad</th>
+                        <th className="px-4 py-3 text-left">Total</th>
+                        <th className="px-4 py-3 text-left">Completadas</th>
+                        <th className="px-4 py-3 text-left">Pendientes</th>
+                        <th className="px-4 py-3 text-left">Canceladas</th>
+                        <th className="px-4 py-3 text-left">Última visita</th>
+                        <th className="px-4 py-3 text-left">Extensionistas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data?.visitasPorPropietario?.map((r, i) => (
+                        <tr key={r.propietario_id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="px-4 py-3 font-medium">{r.propietario_nombre || '—'}</td>
+                          <td className="px-4 py-3 text-gray-500">{r.rut || '—'}</td>
+                          <td className="px-4 py-3">{r.comuna || '—'}</td>
+                          <td className="px-4 py-3">
+                            {r.comunidad_indigena
+                              ? <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
+                                  {r.comunidad_nombre || 'Sí'}
+                                </span>
+                              : <span className="text-gray-400 text-xs">No</span>
+                            }
+                          </td>
+                          <td className="px-4 py-3 font-bold text-green-700">{r.total_visitas}</td>
+                          <td className="px-4 py-3">
+                            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
+                              {r.completadas}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">
+                              {r.pendientes}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">
+                              {r.canceladas}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {r.ultima_visita
+                              ? new Date(r.ultima_visita).toLocaleDateString('es-CL')
+                              : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-center">{r.extensionistas_distintos}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-            <input type="text" placeholder="Buscar propietario por nombre o RUT..."
-              value={busqueda} onChange={e => setBusqueda(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 border border-green-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-400 shadow-sm text-sm transition-all" />
-          </div>
-        </div>
-
-        {/* Exportar PDF */}
-        <div className="mb-8">
-          <button onClick={exportarPDF}
-            className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-xl hover:from-green-700 hover:to-green-800 transition-all shadow-lg text-sm font-semibold">
-            📄 Exportar listado a PDF
-          </button>
-        </div>
-
-        {/* Tabla */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-6 sm:p-8 border-b border-green-100 bg-gradient-to-r from-green-50 to-green-100">
-            <h2 className="text-xl sm:text-2xl font-bold text-green-800">
-              Propietarios ({propietariosFiltrados.length})
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-green-100">
-              <thead className="bg-green-50/50">
-                <tr>
-                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider">Nombre</th>
-                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider hidden md:table-cell">RUT</th>
-                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider hidden lg:table-cell">Comunidad</th>
-                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider hidden sm:table-cell">Comuna</th>
-                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider hidden md:table-cell">Tipo</th>
-                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider">Visitas</th>
-                  <th className="px-4 py-4 sm:px-6 lg:px-8 text-left text-xs sm:text-sm font-semibold text-green-800 uppercase tracking-wider">Ver</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-green-50">
-                {propietariosFiltrados.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="text-center py-12 text-gray-500">
-                      <div className="text-lg">No se encontraron propietarios</div>
-                      <div className="text-sm mt-1">Intenta con otro término de búsqueda</div>
-                    </td>
-                  </tr>
-                ) : (
-                  propietariosFiltrados.map(propietario => (
-                    <tr key={propietario.id} className="hover:bg-green-50/50 transition-all">
-                      <td className="px-4 py-5 sm:px-6 lg:px-8 font-medium text-gray-900 text-sm">{propietario.nombre}</td>
-                      <td className="px-4 py-5 sm:px-6 lg:px-8 text-gray-700 text-sm hidden md:table-cell">{propietario.rut}</td>
-                      <td className="px-4 py-5 sm:px-6 lg:px-8 hidden lg:table-cell">
-                        {propietario.comunidad_indigena ? (
-                          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">{propietario.comunidad_indigena}</span>
-                        ) : (
-                          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">No</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-5 sm:px-6 lg:px-8 text-gray-700 text-sm hidden sm:table-cell">{propietario.comuna}</td>
-                      <td className="px-4 py-5 sm:px-6 lg:px-8 text-gray-700 text-sm hidden md:table-cell">{propietario.tipo_propietario}</td>
-                      <td className="px-4 py-5 sm:px-6 lg:px-8">
-                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs sm:text-sm font-semibold">
-                          {propietario.visitas_pendientes}
-                        </span>
-                      </td>
-                      <td className="px-4 py-5 sm:px-6 lg:px-8">
-                        <button
-                          onClick={() => setPropietarioModal(propietario)}
-                          className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition"
-                        >
-                          Ver
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          </>
+        )}
       </div>
-
-      {/* Modal visitas */}
-      <ModalVisitas
-        propietario={propietarioModal}
-        onClose={() => setPropietarioModal(null)}
-      />
     </div>
   )
 }

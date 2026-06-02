@@ -1,29 +1,41 @@
 import { NextResponse } from 'next/server'
 import { pool } from '../../../lib/db'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../auth/[...nextauth]/route'
 
 export async function GET() {
   try {
-    const result = await pool.query(`
-      SELECT
-        v.id,
-        v.fecha_visita,
-        v.hora_visita,
-        v.estado,
-        v.observaciones,
-        v.actividad,
-        p.nombre AS propietario_nombre,
-        p.rut    AS propietario_rut,
-        p.comuna AS propietario_comuna,
-        p.comunidad_indigena,
-        p.comunidad_nombre,
-        u.nombre AS extensionista_nombre,
-        u.email  AS extensionista_email
-      FROM visitass v
-      JOIN propietarios p ON v.propietario_id = p.id
-      JOIN auth_users   u ON v.extensionista_id = u.id
-      WHERE v.estado = 'pendiente'
-      ORDER BY v.fecha_visita DESC, v.hora_visita DESC
-    `)
+    const session = await getServerSession(authOptions)
+
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    // Si es admin (role_id 1) ve todas, si es extensionista (role_id 2) solo las suyas
+    const esAdmin = session.user.roleId === 1
+
+   const result = await pool.query(`
+  SELECT
+    v.id,
+    v.fecha_visita,
+    v.hora_visita,
+    v.estado,
+    v.observaciones,
+    v.actividad,
+    p.nombre AS propietario_nombre,
+    p.rut    AS propietario_rut,
+    p.comuna AS propietario_comuna,
+    p.comunidad_indigena,
+    p.comunidad_nombre,
+    u.nombre AS extensionista_nombre
+  FROM visitass v
+  JOIN propietarios p ON v.propietario_id = p.id
+  JOIN usuarios u     ON v.extensionista_id = u.id
+  WHERE v.estado = 'pendiente'
+  ${!esAdmin ? `AND v.extensionista_id::text = $1` : ''}
+  ORDER BY v.fecha_visita DESC, v.hora_visita DESC
+`, !esAdmin ? [session.user.id] : [])
+
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error('Error al obtener visitas pendientes:', error)
@@ -31,7 +43,7 @@ export async function GET() {
   }
 }
 
-// Modificar visita
+// Modificar visita — sin cambios
 export async function PUT(request) {
   try {
     const { id, fecha_visita, hora_visita, actividad, observaciones } = await request.json()
@@ -43,10 +55,10 @@ export async function PUT(request) {
     await pool.query(`
       UPDATE visitass
       SET
-        fecha_visita  = $1,
-        hora_visita   = $2,
-        actividad     = $3,
-        observaciones = $4,
+        fecha_visita   = $1,
+        hora_visita    = $2,
+        actividad      = $3,
+        observaciones  = $4,
         actualizado_en = NOW()
       WHERE id = $5
     `, [fecha_visita, hora_visita, actividad, observaciones, id])
@@ -58,7 +70,7 @@ export async function PUT(request) {
   }
 }
 
-// Cancelar visita
+// Cancelar visita — sin cambios
 export async function DELETE(request) {
   try {
     const { id } = await request.json()

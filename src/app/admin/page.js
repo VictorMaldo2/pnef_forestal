@@ -49,7 +49,7 @@ export default function AdminDashboard() {
 
   const statCards = [
     {
-      label:  'Total Propietarios',
+      label:  'Propietarios(as) Registrados',
       valor:  stats.totalPropietarios,
       color:  'green',
       icon:   <UsersIcon className="h-6 w-6 text-green-600" />,
@@ -71,7 +71,7 @@ export default function AdminDashboard() {
       dot:    'bg-yellow-400',
     },
     {
-      label:  'Jornadas Totales',
+      label:  'Actividades realizadas',
       valor:  stats.jornadasTotales,
       color:  'blue',
       icon:   <CalendarIcon className="h-6 w-6 text-blue-600" />,

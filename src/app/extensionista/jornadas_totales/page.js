@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 const TIPO_LABEL = {
   talonario: { label: 'Talonario de Terreno', color: 'bg-blue-100 text-blue-700' },
@@ -15,9 +17,7 @@ function Modal({ jornada, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        
 
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
           <div>
             <span className={`px-2 py-1 rounded text-xs font-semibold ${TIPO_LABEL[jornada.tipo].color}`}>
@@ -35,7 +35,6 @@ function Modal({ jornada, onClose }) {
 
         <div className="p-6 space-y-6">
 
-          {/* Extensionista y Propietario */}
           <Seccion titulo="Participantes">
             <Fila label="Extensionista" valor={jornada.extensionista_nombre} />
             <Fila label="RUT Extensionista" valor={jornada.extensionista_rut} />
@@ -44,7 +43,6 @@ function Modal({ jornada, onClose }) {
             <Fila label="Comuna" valor={jornada.propietario_comuna} />
           </Seccion>
 
-          {/* Datos según tipo */}
           {esTalonario ? (
             <>
               <Seccion titulo="Encabezado">
@@ -161,7 +159,6 @@ function Modal({ jornada, onClose }) {
   )
 }
 
-// Componentes auxiliares
 function Seccion({ titulo, children }) {
   return (
     <div>
@@ -193,7 +190,6 @@ function Texto({ label, valor }) {
 }
 
 function ListaArray({ items }) {
-  // Normalizar: si llega como string, convertir a array
   const lista = Array.isArray(items)
     ? items
     : typeof items === 'string'
@@ -219,14 +215,15 @@ function formatFecha(fecha) {
   return new Date(fecha).toLocaleDateString('es-CL')
 }
 
-// ─── Página principal ───────────────────────────────────────────────────────
-
 export default function JornadasTotalesPage() {
-  const [jornadas, setJornadas]     = useState([])
-  const [loading, setLoading]       = useState(true)
+  const router                          = useRouter()
+  const { data: session }               = useSession()
+  const esAdmin                         = session?.user?.roleId === 1
+  const [jornadas, setJornadas]         = useState([])
+  const [loading, setLoading]           = useState(true)
   const [jornadaModal, setJornadaModal] = useState(null)
-  const [busqueda, setBusqueda]     = useState('')
-  const [filtroTipo, setFiltroTipo] = useState('todos')
+  const [busqueda, setBusqueda]         = useState('')
+  const [filtroTipo, setFiltroTipo]     = useState('todos')
   const [filtroFechaDesde, setFiltroFechaDesde] = useState('')
   const [filtroFechaHasta, setFiltroFechaHasta] = useState('')
 
@@ -251,10 +248,10 @@ export default function JornadasTotalesPage() {
       const texto = busqueda.toLowerCase()
       const coincideTexto =
         !texto ||
-        j.propietario_nombre?.toLowerCase().includes(texto) ||
-        j.propietario_rut?.toLowerCase().includes(texto) ||
-        j.extensionista_nombre?.toLowerCase().includes(texto) ||
-        j.propietario_comuna?.toLowerCase().includes(texto)
+        (j.propietario_nombre?.toLowerCase() || '').includes(texto) ||
+        (j.propietario_rut?.toLowerCase() || '').includes(texto) ||
+        (j.extensionista_nombre?.toLowerCase() || '').includes(texto) ||
+        (j.propietario_comuna?.toLowerCase() || '').includes(texto)
 
       const coincideTipo  = filtroTipo === 'todos' || j.tipo === filtroTipo
       const fecha         = new Date(j.fecha)
@@ -272,24 +269,34 @@ export default function JornadasTotalesPage() {
     setFiltroFechaHasta('')
   }
 
-  // Abrir modal: busca el registro completo por id+tipo
-  async function verDetalle(jornada) {
+  function verDetalle(jornada) {
     setJornadaModal(jornada)
   }
 
+  // columnas según rol
+  const columnas = esAdmin
+    ? ['Tipo', 'Fecha', 'N° / ID', 'Propietario', 'RUT', 'Comuna', 'Extensionista', 'Actividades', 'Sup. Total (Ha)', 'Ver']
+    : ['Tipo', 'Fecha', 'N° / ID', 'Propietario', 'RUT', 'Comuna', 'Actividades', 'Sup. Total (Ha)', 'Ver']
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+
+      <button
+        onClick={() => router.push('/extensionista')}
+        className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition">
+        ← Volver al Dashboard
+      </button>
+
       <h1 className="text-3xl font-bold text-green-800">Jornadas Totales</h1>
       <p className="text-gray-500 text-sm">
         Talonarios de terreno y jornadas de marcación registradas
       </p>
-      
 
       {/* Filtros */}
       <div className="bg-gray-50 border rounded p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por propietario, RUT, extensionista, comuna..."
+            placeholder="Buscar por propietario, RUT, comuna..."
             className="border p-3 rounded w-full col-span-1 md:col-span-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
           <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
             className="border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -334,16 +341,9 @@ export default function JornadasTotalesPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-green-700 text-white">
               <tr>
-                <th className="px-4 py-3 text-left">Tipo</th>
-                <th className="px-4 py-3 text-left">Fecha</th>
-                <th className="px-4 py-3 text-left">N° / ID</th>
-                <th className="px-4 py-3 text-left">Propietario</th>
-                <th className="px-4 py-3 text-left">RUT</th>
-                <th className="px-4 py-3 text-left">Comuna</th>
-                <th className="px-4 py-3 text-left">Extensionista</th>
-                <th className="px-4 py-3 text-left">Actividades</th>
-                <th className="px-4 py-3 text-left">Sup. Total (Ha)</th>
-                <th className="px-4 py-3 text-left">Ver</th>
+                {columnas.map(h => (
+                  <th key={h} className="px-4 py-3 text-left">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -355,14 +355,14 @@ export default function JornadasTotalesPage() {
                       {TIPO_LABEL[j.tipo].label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatFecha(j.fecha)}
-                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatFecha(j.fecha)}</td>
                   <td className="px-4 py-3">{j.nro_talonario || `#${j.id}`}</td>
                   <td className="px-4 py-3 font-medium">{j.propietario_nombre || '—'}</td>
                   <td className="px-4 py-3">{j.propietario_rut || '—'}</td>
                   <td className="px-4 py-3">{j.propietario_comuna || '—'}</td>
-                  <td className="px-4 py-3">{j.extensionista_nombre || '—'}</td>
+                  {esAdmin && (
+                    <td className="px-4 py-3">{j.extensionista_nombre || '—'}</td>
+                  )}
                   <td className="px-4 py-3">
                     {Array.isArray(j.actividades) && j.actividades.length > 0
                       ? j.actividades.slice(0, 2).join(', ') +
@@ -373,8 +373,7 @@ export default function JornadasTotalesPage() {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => verDetalle(j)}
-                      className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition"
-                    >
+                      className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition">
                       Ver
                     </button>
                   </td>
@@ -385,7 +384,6 @@ export default function JornadasTotalesPage() {
         </div>
       )}
 
-      {/* Modal */}
       <Modal jornada={jornadaModal} onClose={() => setJornadaModal(null)} />
     </div>
   )

@@ -66,7 +66,7 @@ export default function ExtensionistaDashboard() {
               </div>
               <div className="w-3 h-3 bg-green-400 rounded-full animate-ping opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
-            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-800">Propietarios</h3>
+            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-800">Propietarios Registrados</h3>
           </div>
 
           <div onClick={() => router.push('/extensionista/visi_pen')}
@@ -88,7 +88,7 @@ export default function ExtensionistaDashboard() {
               </div>
               <div className="w-3 h-3 bg-blue-400 rounded-full animate-ping opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
-            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-800">Jornadas Totales</h3>
+            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-800">Actividades realizadas</h3>
           </div>
         </section>
 

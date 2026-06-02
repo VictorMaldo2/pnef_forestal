@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
-function ModalEditar({ visita, onClose, onGuardar }) {
+function ModalEditar({ visita, onClose, onGuardar, esAdmin }) {
   const [form, setForm] = useState({
     fecha_visita:  visita.fecha_visita?.split('T')[0] || '',
     hora_visita:   visita.hora_visita || '',
@@ -36,10 +38,12 @@ function ModalEditar({ visita, onClose, onGuardar }) {
             <label className="block text-sm font-semibold text-gray-700 mb-1">Propietario</label>
             <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">{visita.propietario_nombre}</p>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Extensionista</label>
-            <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">{visita.extensionista_nombre}</p>
-          </div>
+          {esAdmin && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Extensionista</label>
+              <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">{visita.extensionista_nombre}</p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha</label>
@@ -84,6 +88,9 @@ function ModalEditar({ visita, onClose, onGuardar }) {
 }
 
 export default function VisitasPendientes() {
+  const { data: session }               = useSession()
+  const router                          = useRouter()
+  const esAdmin                         = session?.user?.roleId === 1
   const [visitas, setVisitas]           = useState([])
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState('')
@@ -116,13 +123,17 @@ export default function VisitasPendientes() {
 
   const visitasFiltradas = useMemo(() => {
     return visitas.filter(v => {
-      return (
-        v.extensionista_nombre.toLowerCase().includes(filterExtensionista.toLowerCase()) &&
-        v.propietario_nombre.toLowerCase().includes(filterPropietario.toLowerCase()) &&
-        (filterFecha === '' || new Date(v.fecha_visita).toLocaleDateString() === new Date(filterFecha).toLocaleDateString())
-      )
+      const coincideExt = !esAdmin ||
+        (v.extensionista_nombre || '').toLowerCase().includes(filterExtensionista.toLowerCase())
+      const coincideProp =
+        (v.propietario_nombre || '').toLowerCase().includes(filterPropietario.toLowerCase())
+      const coincideFecha =
+        filterFecha === '' ||
+        new Date(v.fecha_visita).toLocaleDateString() === new Date(filterFecha).toLocaleDateString()
+
+      return coincideExt && coincideProp && coincideFecha
     })
-  }, [visitas, filterExtensionista, filterPropietario, filterFecha])
+  }, [visitas, filterExtensionista, filterPropietario, filterFecha, esAdmin])
 
   async function handleGuardar(datos) {
     try {
@@ -172,31 +183,43 @@ export default function VisitasPendientes() {
   }
 
   const exportarPDF = () => {
-  const doc = new jsPDF()
-  doc.setFontSize(18)
-  doc.text('Listado de Visitas Pendientes', 14, 22)
+    const doc = new jsPDF()
+    doc.setFontSize(18)
+    doc.text('Listado de Visitas Pendientes', 14, 22)
 
-  const headers = [['Extensionista', 'Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad']]
-  const data = visitasFiltradas.map(v => [
-    v.extensionista_nombre,
-    v.propietario_nombre,
-    new Date(v.fecha_visita).toLocaleDateString('es-CL'),
-    v.hora_visita || '—',
-    v.actividad || '—',
-    v.comunidad_indigena ? (v.comunidad_nombre || 'Indígena') : 'No'
-  ])
+    const headers = esAdmin
+      ? [['Extensionista', 'Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad']]
+      : [['Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad']]
 
-  autoTable(doc, {
-    startY: 30,
-    head: headers,
-    body: data,
-    styles: { fontSize: 10 },
-    headStyles: { fillColor: [16, 185, 129] },
-    theme: 'striped',
-  })
+    const data = visitasFiltradas.map(v => esAdmin
+      ? [
+          v.extensionista_nombre,
+          v.propietario_nombre,
+          new Date(v.fecha_visita).toLocaleDateString('es-CL'),
+          v.hora_visita || '—',
+          v.actividad || '—',
+          v.comunidad_indigena ? (v.comunidad_nombre || 'Indígena') : 'No'
+        ]
+      : [
+          v.propietario_nombre,
+          new Date(v.fecha_visita).toLocaleDateString('es-CL'),
+          v.hora_visita || '—',
+          v.actividad || '—',
+          v.comunidad_indigena ? (v.comunidad_nombre || 'Indígena') : 'No'
+        ]
+    )
 
-  doc.save('visitas_pendientes.pdf')
-}
+    autoTable(doc, {
+      startY: 30,
+      head: headers,
+      body: data,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [16, 185, 129] },
+      theme: 'striped',
+    })
+
+    doc.save('visitas_pendientes.pdf')
+  }
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
@@ -210,23 +233,35 @@ export default function VisitasPendientes() {
     </div>
   )
 
+  const columnas = esAdmin
+    ? ['Extensionista', 'Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad', 'Acciones']
+    : ['Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad', 'Acciones']
+
   return (
     <div className="p-4 max-w-7xl mx-auto">
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-green-800">Visitas Pendientes</h1>
+        <div>
+          <button onClick={() => router.push('/extensionista')}
+            className="text-green-700 hover:text-green-900 text-sm font-medium mb-2 flex items-center gap-1">
+            ← Volver
+          </button>
+          <h1 className="text-3xl font-bold text-green-800">Visitas Pendientes</h1>
+        </div>
         <button onClick={exportarPDF}
           className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg font-semibold transition">
           Exportar a PDF
         </button>
-        
       </div>
 
       {/* Filtros */}
-      <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <input type="text" placeholder="Filtrar por Extensionista"
-          value={filterExtensionista} onChange={e => setFilterExtensionista(e.target.value)}
-          className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+      <div className={`mb-6 grid grid-cols-1 gap-4 ${esAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+        {esAdmin && (
+          <input type="text" placeholder="Filtrar por Extensionista"
+            value={filterExtensionista} onChange={e => setFilterExtensionista(e.target.value)}
+            className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+        )}
         <input type="text" placeholder="Filtrar por Propietario"
           value={filterPropietario} onChange={e => setFilterPropietario(e.target.value)}
           className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
@@ -245,7 +280,7 @@ export default function VisitasPendientes() {
         <table className="min-w-full table-auto border-collapse">
           <thead className="bg-green-50">
             <tr>
-              {['Extensionista', 'Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad', 'Acciones'].map(h => (
+              {columnas.map(h => (
                 <th key={h}
                   className="border border-green-200 px-4 py-3 text-left text-sm font-semibold text-green-700 uppercase whitespace-nowrap">
                   {h}
@@ -256,14 +291,16 @@ export default function VisitasPendientes() {
           <tbody>
             {visitasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-gray-500 font-semibold">
+                <td colSpan={columnas.length} className="py-8 text-center text-gray-500 font-semibold">
                   No hay visitas pendientes.
                 </td>
               </tr>
             ) : (
               visitasFiltradas.map(visita => (
                 <tr key={visita.id} className="hover:bg-green-50 transition-colors">
-                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.extensionista_nombre}</td>
+                  {esAdmin && (
+                    <td className="border border-green-200 px-4 py-3 text-sm">{visita.extensionista_nombre}</td>
+                  )}
                   <td className="border border-green-200 px-4 py-3 text-sm">{visita.propietario_nombre}</td>
                   <td className="border border-green-200 px-4 py-3 text-sm whitespace-nowrap">
                     {new Date(visita.fecha_visita).toLocaleDateString('es-CL')}
@@ -296,12 +333,12 @@ export default function VisitasPendientes() {
         </table>
       </div>
 
-      {/* Modal editar */}
       {visitaEditar && (
         <ModalEditar
           visita={visitaEditar}
           onClose={() => setVisitaEditar(null)}
           onGuardar={handleGuardar}
+          esAdmin={esAdmin}
         />
       )}
     </div>

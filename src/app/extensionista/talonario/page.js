@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 const actividadesOpciones = [
   { value: 'recorrido_predial',          label: 'Recorrido predial' },
@@ -28,6 +29,7 @@ const sectionTitle = "font-bold text-green-700 text-lg mb-3 border-b pb-2"
 
 export default function TalonarioTerrenoForm() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [propietarios, setPropietarios] = useState([])
   const [propietarioSeleccionado, setPropietarioSeleccionado] = useState(null)
   const [form, setForm] = useState({
@@ -122,6 +124,15 @@ export default function TalonarioTerrenoForm() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded shadow space-y-6">
+
+      {/* ← ÚNICO CAMBIO: botón volver */}
+      <button
+        onClick={() => router.push('/extensionista')}
+        className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition"
+      >
+        ← Volver al Dashboard
+      </button>
+
       <h1 className="text-3xl font-bold text-center text-green-800">Talonario de Terreno</h1>
       <p className="text-center text-gray-500 text-sm">Programa Nacional de Extensión Forestal</p>
 
@@ -171,7 +182,6 @@ export default function TalonarioTerrenoForm() {
             </select>
           </div>
 
-          {/* Datos del propietario (solo lectura, desde la tabla propietarios) */}
           {propietarioSeleccionado && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 bg-green-50 p-3 rounded text-sm">
               <div><span className="font-semibold">RUT:</span> {propietarioSeleccionado.rut}</div>
@@ -181,7 +191,6 @@ export default function TalonarioTerrenoForm() {
             </div>
           )}
 
-          {/* Punto de referencia */}
           <div className="grid grid-cols-3 gap-4 mt-2">
             <div>
               <label className={labelClass}>HUSO</label>
@@ -202,7 +211,6 @@ export default function TalonarioTerrenoForm() {
             </div>
           </div>
 
-          {/* Persona presente */}
           <div>
             <label className={labelClass}>Nombre persona presente en el predio</label>
             <input name="nombre_persona_presente" value={form.nombre_persona_presente}
