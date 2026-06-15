@@ -10,6 +10,7 @@ export async function GET(req) {
   const comuna        = searchParams.get('comuna') || ''
   const propietario   = searchParams.get('propietario') || ''
   const comunidad     = searchParams.get('comunidad') || ''
+  const predio        = searchParams.get('predio') || ''
 
   const client = await pool.connect()
 
@@ -52,6 +53,11 @@ export async function GET(req) {
       filtrosMarcacion.push(`p.comunidad_nombre = $${j++}`); valoresMarcacion.push(comunidad)
       filtrosVisitas.push(`p.comunidad_nombre = $${v++}`);   valoresVisitas.push(comunidad)
     }
+    if (predio) {
+      filtrosTalonario.push(`pr.nombre ILIKE $${i++}`); valoresTalonario.push(`%${predio}%`)
+      filtrosMarcacion.push(`pr.nombre ILIKE $${j++}`); valoresMarcacion.push(`%${predio}%`)
+      filtrosVisitas.push(`pr.nombre ILIKE $${v++}`);   valoresVisitas.push(`%${predio}%`)
+    }
 
     const wT = filtrosTalonario.length ? `WHERE ${filtrosTalonario.join(' AND ')}` : ''
     const wM = filtrosMarcacion.length  ? `WHERE ${filtrosMarcacion.join(' AND ')}`  : ''
@@ -66,8 +72,9 @@ export async function GET(req) {
         COALESCE(ROUND(SUM(t.superficie_anual_planificada)::numeric, 2), 0) AS sup_planificada,
         COALESCE(ROUND(SUM(t.superficie_avance_ejecucion::numeric), 2), 0)  AS sup_ejecutada
       FROM talonario_terreno t
-      JOIN propietarios p ON p.id = t.propietario_id
-      JOIN usuarios u     ON u.id = t.extensionista_id
+      JOIN propietarios p      ON p.id = t.propietario_id
+      JOIN usuarios u          ON u.id = t.extensionista_id
+      LEFT JOIN predios pr     ON pr.id = t.predio_id
       ${wT}
     `, valoresTalonario)
 
@@ -80,131 +87,115 @@ export async function GET(req) {
         COALESCE(ROUND(SUM(m.superficie_anual_planificada)::numeric, 2), 0) AS sup_planificada,
         COALESCE(ROUND(SUM(m.superficie_marcada)::numeric, 2), 0)           AS sup_ejecutada
       FROM jornada_marcacion m
-      JOIN propietarios p ON p.id = m.propietario_id
-      JOIN usuarios u     ON u.id = m.extensionista_id
+      JOIN propietarios p      ON p.id = m.propietario_id
+      JOIN usuarios u          ON u.id = m.extensionista_id
+      LEFT JOIN predios pr     ON pr.id = m.predio_id
       ${wM}
     `, valoresMarcacion)
 
     // ── Jornadas por mes ─────────────────────────────────────────────────────
     const porMesTalonario = await client.query(`
-      SELECT
-        TO_CHAR(DATE_TRUNC('month', t.fecha), 'YYYY-MM') AS mes,
-        COUNT(*)::int AS total
+      SELECT TO_CHAR(DATE_TRUNC('month', t.fecha), 'YYYY-MM') AS mes, COUNT(*)::int AS total
       FROM talonario_terreno t
-      JOIN propietarios p ON p.id = t.propietario_id
-      JOIN usuarios u     ON u.id = t.extensionista_id
-      ${wT}
-      GROUP BY 1 ORDER BY 1
+      JOIN propietarios p  ON p.id = t.propietario_id
+      JOIN usuarios u      ON u.id = t.extensionista_id
+      LEFT JOIN predios pr ON pr.id = t.predio_id
+      ${wT} GROUP BY 1 ORDER BY 1
     `, valoresTalonario)
 
     const porMesMarcacion = await client.query(`
-      SELECT
-        TO_CHAR(DATE_TRUNC('month', m.fecha_jornada), 'YYYY-MM') AS mes,
-        COUNT(*)::int AS total
+      SELECT TO_CHAR(DATE_TRUNC('month', m.fecha_jornada), 'YYYY-MM') AS mes, COUNT(*)::int AS total
       FROM jornada_marcacion m
-      JOIN propietarios p ON p.id = m.propietario_id
-      JOIN usuarios u     ON u.id = m.extensionista_id
-      ${wM}
-      GROUP BY 1 ORDER BY 1
+      JOIN propietarios p  ON p.id = m.propietario_id
+      JOIN usuarios u      ON u.id = m.extensionista_id
+      LEFT JOIN predios pr ON pr.id = m.predio_id
+      ${wM} GROUP BY 1 ORDER BY 1
     `, valoresMarcacion)
 
     // ── Por extensionista ────────────────────────────────────────────────────
     const extTalonario = await client.query(`
-      SELECT
-        u.nombre                                                        AS extensionista_nombre,
-        COUNT(*)::int                                                   AS jornadas,
-        COUNT(DISTINCT t.propietario_id)::int                          AS propietarios,
+      SELECT u.nombre AS extensionista_nombre, COUNT(*)::int AS jornadas,
+        COUNT(DISTINCT t.propietario_id)::int AS propietarios,
         COALESCE(ROUND(SUM(t.superficie_total_predio)::numeric, 2), 0) AS sup_total
       FROM talonario_terreno t
-      JOIN propietarios p ON p.id = t.propietario_id
-      JOIN usuarios u     ON u.id = t.extensionista_id
-      ${wT}
-      GROUP BY u.nombre ORDER BY jornadas DESC
+      JOIN propietarios p  ON p.id = t.propietario_id
+      JOIN usuarios u      ON u.id = t.extensionista_id
+      LEFT JOIN predios pr ON pr.id = t.predio_id
+      ${wT} GROUP BY u.nombre ORDER BY jornadas DESC
     `, valoresTalonario)
 
     const extMarcacion = await client.query(`
-      SELECT
-        u.nombre                                                        AS extensionista_nombre,
-        COUNT(*)::int                                                   AS jornadas,
-        COUNT(DISTINCT m.propietario_id)::int                          AS propietarios,
+      SELECT u.nombre AS extensionista_nombre, COUNT(*)::int AS jornadas,
+        COUNT(DISTINCT m.propietario_id)::int AS propietarios,
         COALESCE(ROUND(SUM(m.superficie_total_predio)::numeric, 2), 0) AS sup_total
       FROM jornada_marcacion m
-      JOIN propietarios p ON p.id = m.propietario_id
-      JOIN usuarios u     ON u.id = m.extensionista_id
-      ${wM}
-      GROUP BY u.nombre ORDER BY jornadas DESC
+      JOIN propietarios p  ON p.id = m.propietario_id
+      JOIN usuarios u      ON u.id = m.extensionista_id
+      LEFT JOIN predios pr ON pr.id = m.predio_id
+      ${wM} GROUP BY u.nombre ORDER BY jornadas DESC
     `, valoresMarcacion)
 
     // ── Por comuna ───────────────────────────────────────────────────────────
     const comunaTalonario = await client.query(`
-      SELECT
-        p.comuna,
-        COUNT(*)::int                                                   AS jornadas,
+      SELECT p.comuna, COUNT(*)::int AS jornadas,
         COALESCE(ROUND(SUM(t.superficie_total_predio)::numeric, 2), 0) AS sup_total
       FROM talonario_terreno t
-      JOIN propietarios p ON p.id = t.propietario_id
-      JOIN usuarios u     ON u.id = t.extensionista_id
-      ${wT}
-      GROUP BY p.comuna ORDER BY jornadas DESC
+      JOIN propietarios p  ON p.id = t.propietario_id
+      JOIN usuarios u      ON u.id = t.extensionista_id
+      LEFT JOIN predios pr ON pr.id = t.predio_id
+      ${wT} GROUP BY p.comuna ORDER BY jornadas DESC
     `, valoresTalonario)
 
     const comunaMarcacion = await client.query(`
-      SELECT
-        p.comuna,
-        COUNT(*)::int                                                   AS jornadas,
+      SELECT p.comuna, COUNT(*)::int AS jornadas,
         COALESCE(ROUND(SUM(m.superficie_total_predio)::numeric, 2), 0) AS sup_total
       FROM jornada_marcacion m
-      JOIN propietarios p ON p.id = m.propietario_id
-      JOIN usuarios u     ON u.id = m.extensionista_id
-      ${wM}
-      GROUP BY p.comuna ORDER BY jornadas DESC
+      JOIN propietarios p  ON p.id = m.propietario_id
+      JOIN usuarios u      ON u.id = m.extensionista_id
+      LEFT JOIN predios pr ON pr.id = m.predio_id
+      ${wM} GROUP BY p.comuna ORDER BY jornadas DESC
     `, valoresMarcacion)
 
-    // ── Actividades top 10 combinadas ────────────────────────────────────────
+    // ── Actividades top 10 ───────────────────────────────────────────────────
     const actTalonarioTop = await client.query(`
-      SELECT
-        trim(both '"' from UNNEST(string_to_array(trim(both '{}' from t.actividades::text), ','))) AS actividad,
+      SELECT trim(both '"' from UNNEST(string_to_array(trim(both '{}' from t.actividades::text), ','))) AS actividad,
         COUNT(*)::int AS total
       FROM talonario_terreno t
-      JOIN propietarios p ON p.id = t.propietario_id
-      JOIN usuarios u     ON u.id = t.extensionista_id
-      ${wT}
-      GROUP BY actividad ORDER BY total DESC LIMIT 10
+      JOIN propietarios p  ON p.id = t.propietario_id
+      JOIN usuarios u      ON u.id = t.extensionista_id
+      LEFT JOIN predios pr ON pr.id = t.predio_id
+      ${wT} GROUP BY actividad ORDER BY total DESC LIMIT 10
     `, valoresTalonario)
 
     const actMarcacionTop = await client.query(`
-      SELECT
-        trim(both '"' from UNNEST(string_to_array(trim(both '{}' from m.actividades::text), ','))) AS actividad,
+      SELECT trim(both '"' from UNNEST(string_to_array(trim(both '{}' from m.actividades::text), ','))) AS actividad,
         COUNT(*)::int AS total
       FROM jornada_marcacion m
-      JOIN propietarios p ON p.id = m.propietario_id
-      JOIN usuarios u     ON u.id = m.extensionista_id
-      ${wM}
-      GROUP BY actividad ORDER BY total DESC LIMIT 10
+      JOIN propietarios p  ON p.id = m.propietario_id
+      JOIN usuarios u      ON u.id = m.extensionista_id
+      LEFT JOIN predios pr ON pr.id = m.predio_id
+      ${wM} GROUP BY actividad ORDER BY total DESC LIMIT 10
     `, valoresMarcacion)
 
-    // ── Todas las actividades talonario ───────────────────────────────────────
+    // ── Actividades detalle ──────────────────────────────────────────────────
     const actTalonarioDetalle = await client.query(`
-      SELECT
-        trim(both '"' from UNNEST(string_to_array(trim(both '{}' from t.actividades::text), ','))) AS actividad,
+      SELECT trim(both '"' from UNNEST(string_to_array(trim(both '{}' from t.actividades::text), ','))) AS actividad,
         COUNT(*)::int AS total
       FROM talonario_terreno t
-      JOIN propietarios p ON p.id = t.propietario_id
-      JOIN usuarios u     ON u.id = t.extensionista_id
-      ${wT}
-      GROUP BY actividad ORDER BY total DESC
+      JOIN propietarios p  ON p.id = t.propietario_id
+      JOIN usuarios u      ON u.id = t.extensionista_id
+      LEFT JOIN predios pr ON pr.id = t.predio_id
+      ${wT} GROUP BY actividad ORDER BY total DESC
     `, valoresTalonario)
 
-    // ── Todas las actividades marcacion ───────────────────────────────────────
     const actMarcacionDetalle = await client.query(`
-      SELECT
-        trim(both '"' from UNNEST(string_to_array(trim(both '{}' from m.actividades::text), ','))) AS actividad,
+      SELECT trim(both '"' from UNNEST(string_to_array(trim(both '{}' from m.actividades::text), ','))) AS actividad,
         COUNT(*)::int AS total
       FROM jornada_marcacion m
-      JOIN propietarios p ON p.id = m.propietario_id
-      JOIN usuarios u     ON u.id = m.extensionista_id
-      ${wM}
-      GROUP BY actividad ORDER BY total DESC
+      JOIN propietarios p  ON p.id = m.propietario_id
+      JOIN usuarios u      ON u.id = m.extensionista_id
+      LEFT JOIN predios pr ON pr.id = m.predio_id
+      ${wM} GROUP BY actividad ORDER BY total DESC
     `, valoresMarcacion)
 
     // ── Productos acumulados ─────────────────────────────────────────────────
@@ -216,8 +207,9 @@ export async function GET(req) {
         COALESCE(ROUND(SUM(t.durmientes)::numeric, 2), 0)      AS durmientes,
         COALESCE(ROUND(SUM(t.metros_rumas)::numeric, 2), 0)    AS metros_rumas
       FROM talonario_terreno t
-      JOIN propietarios p ON p.id = t.propietario_id
-      JOIN usuarios u     ON u.id = t.extensionista_id
+      JOIN propietarios p  ON p.id = t.propietario_id
+      JOIN usuarios u      ON u.id = t.extensionista_id
+      LEFT JOIN predios pr ON pr.id = t.predio_id
       ${wT}
     `, valoresTalonario)
 
@@ -230,29 +222,27 @@ export async function GET(req) {
         COUNT(*) FILTER (WHERE v.estado = 'cancelada')::int    AS canceladas,
         COUNT(DISTINCT v.propietario_id)::int                  AS propietarios_con_visita
       FROM visitass v
-      JOIN usuarios u     ON u.id = v.extensionista_id
-      JOIN propietarios p ON p.id = v.propietario_id
+      JOIN usuarios u      ON u.id = v.extensionista_id
+      JOIN propietarios p  ON p.id = v.propietario_id
+      LEFT JOIN predios pr ON pr.id = v.predio_id
       ${wV}
     `, valoresVisitas)
 
     // ── Visitas por propietario ───────────────────────────────────────────────
     const visitasPorPropietario = await client.query(`
       SELECT
-        p.id                                                           AS propietario_id,
-        p.nombre                                                       AS propietario_nombre,
-        p.rut,
-        p.comuna,
-        p.comunidad_indigena,
-        p.comunidad_nombre,
-        COUNT(*)::int                                                  AS total_visitas,
-        COUNT(*) FILTER (WHERE v.estado = 'completada')::int          AS completadas,
-        COUNT(*) FILTER (WHERE v.estado = 'pendiente')::int           AS pendientes,
-        COUNT(*) FILTER (WHERE v.estado = 'cancelada')::int           AS canceladas,
-        MAX(v.fecha_visita)                                            AS ultima_visita,
-        COUNT(DISTINCT v.extensionista_id)::int                       AS extensionistas_distintos
+        p.id AS propietario_id, p.nombre AS propietario_nombre,
+        p.rut, p.comuna, p.comunidad_indigena, p.comunidad_nombre,
+        COUNT(*)::int AS total_visitas,
+        COUNT(*) FILTER (WHERE v.estado = 'completada')::int AS completadas,
+        COUNT(*) FILTER (WHERE v.estado = 'pendiente')::int  AS pendientes,
+        COUNT(*) FILTER (WHERE v.estado = 'cancelada')::int  AS canceladas,
+        MAX(v.fecha_visita)                                  AS ultima_visita,
+        COUNT(DISTINCT v.extensionista_id)::int              AS extensionistas_distintos
       FROM visitass v
-      JOIN propietarios p ON p.id = v.propietario_id
-      JOIN usuarios u     ON u.id = v.extensionista_id
+      JOIN propietarios p  ON p.id = v.propietario_id
+      JOIN usuarios u      ON u.id = v.extensionista_id
+      LEFT JOIN predios pr ON pr.id = v.predio_id
       ${wV}
       GROUP BY p.id, p.nombre, p.rut, p.comuna, p.comunidad_indigena, p.comunidad_nombre
       ORDER BY total_visitas DESC
@@ -261,76 +251,96 @@ export async function GET(req) {
     // ── Visitas por extensionista ─────────────────────────────────────────────
     const visitasPorExtensionista = await client.query(`
       SELECT
-        u.nombre                                                       AS extensionista_nombre,
-        COUNT(*)::int                                                  AS total_visitas,
-        COUNT(*) FILTER (WHERE v.estado = 'completada')::int          AS completadas,
-        COUNT(*) FILTER (WHERE v.estado = 'pendiente')::int           AS pendientes,
-        COUNT(*) FILTER (WHERE v.estado = 'cancelada')::int           AS canceladas,
-        COUNT(DISTINCT v.propietario_id)::int                         AS propietarios_visitados
+        u.nombre AS extensionista_nombre,
+        COUNT(*)::int AS total_visitas,
+        COUNT(*) FILTER (WHERE v.estado = 'completada')::int AS completadas,
+        COUNT(*) FILTER (WHERE v.estado = 'pendiente')::int  AS pendientes,
+        COUNT(*) FILTER (WHERE v.estado = 'cancelada')::int  AS canceladas,
+        COUNT(DISTINCT v.propietario_id)::int                AS propietarios_visitados
       FROM visitass v
-      JOIN usuarios u     ON u.id = v.extensionista_id
-      JOIN propietarios p ON p.id = v.propietario_id
+      JOIN usuarios u      ON u.id = v.extensionista_id
+      JOIN propietarios p  ON p.id = v.propietario_id
+      LEFT JOIN predios pr ON pr.id = v.predio_id
       ${wV}
-      GROUP BY u.nombre
-      ORDER BY total_visitas DESC
+      GROUP BY u.nombre ORDER BY total_visitas DESC
     `, valoresVisitas)
 
     // ── Actividades en visitas ────────────────────────────────────────────────
     const actividadesVisitas = await client.query(`
-      SELECT
-        v.actividad,
-        COUNT(*)::int AS total
+      SELECT v.actividad, COUNT(*)::int AS total
       FROM visitass v
-      JOIN usuarios u     ON u.id = v.extensionista_id
-      JOIN propietarios p ON p.id = v.propietario_id
+      JOIN usuarios u      ON u.id = v.extensionista_id
+      JOIN propietarios p  ON p.id = v.propietario_id
+      LEFT JOIN predios pr ON pr.id = v.predio_id
       ${wV ? wV + ' AND' : 'WHERE'} v.actividad IS NOT NULL
-      GROUP BY v.actividad
-      ORDER BY total DESC LIMIT 10
+      GROUP BY v.actividad ORDER BY total DESC LIMIT 10
     `, valoresVisitas)
+
+    // ── Predios más activos ───────────────────────────────────────────────────
+    const prediosTalonario = await client.query(`
+      SELECT pr.id, pr.nombre AS predio_nombre, pr.rol,
+        COUNT(*)::int AS jornadas,
+        COALESCE(ROUND(SUM(t.superficie_total_predio)::numeric, 2), 0) AS sup_total
+      FROM talonario_terreno t
+      JOIN propietarios p  ON p.id = t.propietario_id
+      JOIN usuarios u      ON u.id = t.extensionista_id
+      JOIN predios pr      ON pr.id = t.predio_id
+      ${wT} GROUP BY pr.id, pr.nombre, pr.rol ORDER BY jornadas DESC
+    `, valoresTalonario)
+
+    const prediosMarcacion = await client.query(`
+      SELECT pr.id, pr.nombre AS predio_nombre, pr.rol,
+        COUNT(*)::int AS jornadas,
+        COALESCE(ROUND(SUM(m.superficie_total_predio)::numeric, 2), 0) AS sup_total
+      FROM jornada_marcacion m
+      JOIN propietarios p  ON p.id = m.propietario_id
+      JOIN usuarios u      ON u.id = m.extensionista_id
+      JOIN predios pr      ON pr.id = m.predio_id
+      ${wM} GROUP BY pr.id, pr.nombre, pr.rol ORDER BY jornadas DESC
+    `, valoresMarcacion)
+
+    const prediosVisitas = await client.query(`
+      SELECT pr.id, pr.nombre AS predio_nombre, pr.rol,
+        COUNT(*)::int AS visitas
+      FROM visitass v
+      JOIN usuarios u  ON u.id = v.extensionista_id
+      JOIN propietarios p ON p.id = v.propietario_id
+      JOIN predios pr  ON pr.id = v.predio_id
+      ${wV} GROUP BY pr.id, pr.nombre, pr.rol ORDER BY visitas DESC
+    `, valoresVisitas)
+
+    // ── Lista de predios para filtro ──────────────────────────────────────────
+    const lstPredios = await client.query(`
+      SELECT DISTINCT id, nombre FROM predios
+      WHERE nombre IS NOT NULL ORDER BY nombre
+    `)
 
     // ── Listas para filtros ───────────────────────────────────────────────────
     const lstExtensionistas = await client.query(`
-      SELECT DISTINCT u.nombre FROM talonario_terreno t
-      JOIN usuarios u ON u.id = t.extensionista_id
-      WHERE u.nombre IS NOT NULL
+      SELECT DISTINCT u.nombre FROM talonario_terreno t JOIN usuarios u ON u.id = t.extensionista_id WHERE u.nombre IS NOT NULL
       UNION
-      SELECT DISTINCT u.nombre FROM jornada_marcacion m
-      JOIN usuarios u ON u.id = m.extensionista_id
-      WHERE u.nombre IS NOT NULL
+      SELECT DISTINCT u.nombre FROM jornada_marcacion m JOIN usuarios u ON u.id = m.extensionista_id WHERE u.nombre IS NOT NULL
       UNION
-      SELECT DISTINCT u.nombre FROM visitass v
-      JOIN usuarios u ON u.id = v.extensionista_id
-      WHERE u.nombre IS NOT NULL
+      SELECT DISTINCT u.nombre FROM visitass v JOIN usuarios u ON u.id = v.extensionista_id WHERE u.nombre IS NOT NULL
       ORDER BY nombre
     `)
 
     const lstComunas = await client.query(`
-      SELECT DISTINCT p.comuna FROM talonario_terreno t
-      JOIN propietarios p ON p.id = t.propietario_id
-      WHERE p.comuna IS NOT NULL
+      SELECT DISTINCT p.comuna FROM talonario_terreno t JOIN propietarios p ON p.id = t.propietario_id WHERE p.comuna IS NOT NULL
       UNION
-      SELECT DISTINCT p.comuna FROM jornada_marcacion m
-      JOIN propietarios p ON p.id = m.propietario_id
-      WHERE p.comuna IS NOT NULL
+      SELECT DISTINCT p.comuna FROM jornada_marcacion m JOIN propietarios p ON p.id = m.propietario_id WHERE p.comuna IS NOT NULL
       UNION
-      SELECT DISTINCT p.comuna FROM visitass v
-      JOIN propietarios p ON p.id = v.propietario_id
-      WHERE p.comuna IS NOT NULL
+      SELECT DISTINCT p.comuna FROM visitass v JOIN propietarios p ON p.id = v.propietario_id WHERE p.comuna IS NOT NULL
       ORDER BY comuna
     `)
 
     const lstPropietarios = await client.query(`
-      SELECT DISTINCT id, nombre FROM propietarios
-      WHERE nombre IS NOT NULL
-      ORDER BY nombre
+      SELECT DISTINCT id, nombre FROM propietarios WHERE nombre IS NOT NULL ORDER BY nombre
     `)
 
     const lstComunidades = await client.query(`
-      SELECT DISTINCT comunidad_nombre
-      FROM propietarios
-      WHERE comunidad_indigena = true
-      AND comunidad_nombre IS NOT NULL
-      ORDER BY comunidad_nombre
+      SELECT DISTINCT comunidad_nombre FROM propietarios
+      WHERE comunidad_indigena = true AND comunidad_nombre IS NOT NULL ORDER BY comunidad_nombre
     `)
 
     // ── Combinar resultados ───────────────────────────────────────────────────
@@ -347,9 +357,7 @@ export async function GET(req) {
     }
 
     const mesesMap = {}
-    porMesTalonario.rows.forEach(r => {
-      mesesMap[r.mes] = { mes: r.mes, talonarios: r.total, marcaciones: 0 }
-    })
+    porMesTalonario.rows.forEach(r => { mesesMap[r.mes] = { mes: r.mes, talonarios: r.total, marcaciones: 0 } })
     porMesMarcacion.rows.forEach(r => {
       if (mesesMap[r.mes]) mesesMap[r.mes].marcaciones = r.total
       else mesesMap[r.mes] = { mes: r.mes, talonarios: 0, marcaciones: r.total }
@@ -358,12 +366,7 @@ export async function GET(req) {
 
     const extMap = {}
     extTalonario.rows.forEach(r => {
-      extMap[r.extensionista_nombre] = {
-        extensionista_nombre: r.extensionista_nombre,
-        jornadas:    r.jornadas,
-        propietarios: r.propietarios,
-        sup_total:   +r.sup_total || 0,
-      }
+      extMap[r.extensionista_nombre] = { extensionista_nombre: r.extensionista_nombre, jornadas: r.jornadas, propietarios: r.propietarios, sup_total: +r.sup_total || 0 }
     })
     extMarcacion.rows.forEach(r => {
       if (extMap[r.extensionista_nombre]) {
@@ -371,39 +374,24 @@ export async function GET(req) {
         extMap[r.extensionista_nombre].propietarios += r.propietarios
         extMap[r.extensionista_nombre].sup_total    += +r.sup_total || 0
       } else {
-        extMap[r.extensionista_nombre] = {
-          extensionista_nombre: r.extensionista_nombre,
-          jornadas:    r.jornadas,
-          propietarios: r.propietarios,
-          sup_total:   +r.sup_total || 0,
-        }
+        extMap[r.extensionista_nombre] = { extensionista_nombre: r.extensionista_nombre, jornadas: r.jornadas, propietarios: r.propietarios, sup_total: +r.sup_total || 0 }
       }
     })
     const porExtensionista = Object.values(extMap).sort((a, b) => b.jornadas - a.jornadas)
 
     const comunaMap = {}
-    comunaTalonario.rows.forEach(r => {
-      comunaMap[r.comuna] = { comuna: r.comuna, jornadas: r.jornadas, sup_total: +r.sup_total || 0 }
-    })
+    comunaTalonario.rows.forEach(r => { comunaMap[r.comuna] = { comuna: r.comuna, jornadas: r.jornadas, sup_total: +r.sup_total || 0 } })
     comunaMarcacion.rows.forEach(r => {
-      if (comunaMap[r.comuna]) {
-        comunaMap[r.comuna].jornadas  += r.jornadas
-        comunaMap[r.comuna].sup_total += +r.sup_total || 0
-      } else {
-        comunaMap[r.comuna] = { comuna: r.comuna, jornadas: r.jornadas, sup_total: +r.sup_total || 0 }
-      }
+      if (comunaMap[r.comuna]) { comunaMap[r.comuna].jornadas += r.jornadas; comunaMap[r.comuna].sup_total += +r.sup_total || 0 }
+      else comunaMap[r.comuna] = { comuna: r.comuna, jornadas: r.jornadas, sup_total: +r.sup_total || 0 }
     })
     const porComuna = Object.values(comunaMap).sort((a, b) => b.jornadas - a.jornadas)
 
     const actMap = {}
     actTalonarioTop.rows.forEach(r => { actMap[r.actividad] = (actMap[r.actividad] || 0) + r.total })
     actMarcacionTop.rows.forEach(r => { actMap[r.actividad] = (actMap[r.actividad] || 0) + r.total })
-    const actividades = Object.entries(actMap)
-      .map(([actividad, total]) => ({ actividad, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 10)
+    const actividades = Object.entries(actMap).map(([actividad, total]) => ({ actividad, total })).sort((a, b) => b.total - a.total).slice(0, 10)
 
-    // ── Actividades completas con posibles (incluyendo 0) ────────────────────
     const ACTIVIDADES_TALONARIO = [
       { value: 'recorrido_predial',          label: 'Recorrido predial' },
       { value: 'forestacion',                label: 'Forestación' },
@@ -444,23 +432,30 @@ export async function GET(req) {
     const actMMap = {}
     actMarcacionDetalle.rows.forEach(r => { actMMap[r.actividad.trim()] = r.total })
 
-    const actividadesTalonario = ACTIVIDADES_TALONARIO.map(a => ({
-      label: a.label,
-      value: a.value,
-      total: actTMap[a.value] || 0,
-    })).sort((a, b) => b.total - a.total)
+    const actividadesTalonario = ACTIVIDADES_TALONARIO.map(a => ({ label: a.label, value: a.value, total: actTMap[a.value] || 0 })).sort((a, b) => b.total - a.total)
+    const actividadesMarcacion = ACTIVIDADES_MARCACION.map(a => ({ label: a.label, value: a.value, total: actMMap[a.value] || 0 })).sort((a, b) => b.total - a.total)
 
-    const actividadesMarcacion = ACTIVIDADES_MARCACION.map(a => ({
-      label: a.label,
-      value: a.value,
-      total: actMMap[a.value] || 0,
-    })).sort((a, b) => b.total - a.total)
+    // combinar predios
+    const prediosMap = {}
+    prediosTalonario.rows.forEach(r => {
+      prediosMap[r.id] = { predio_nombre: r.predio_nombre, rol: r.rol, jornadas: r.jornadas, sup_total: +r.sup_total || 0, visitas: 0 }
+    })
+    prediosMarcacion.rows.forEach(r => {
+      if (prediosMap[r.id]) { prediosMap[r.id].jornadas += r.jornadas; prediosMap[r.id].sup_total += +r.sup_total || 0 }
+      else prediosMap[r.id] = { predio_nombre: r.predio_nombre, rol: r.rol, jornadas: r.jornadas, sup_total: +r.sup_total || 0, visitas: 0 }
+    })
+    prediosVisitas.rows.forEach(r => {
+      if (prediosMap[r.id]) prediosMap[r.id].visitas = r.visitas
+      else prediosMap[r.id] = { predio_nombre: r.predio_nombre, rol: r.rol, jornadas: 0, sup_total: 0, visitas: r.visitas }
+    })
+    const porPredio = Object.values(prediosMap).sort((a, b) => (b.jornadas + b.visitas) - (a.jornadas + a.visitas))
 
     return Response.json({
       kpis,
       porMes,
       porExtensionista,
       porComuna,
+      porPredio,
       actividades,
       actividadesTalonario,
       actividadesMarcacion,
@@ -469,6 +464,7 @@ export async function GET(req) {
       comunas:                 lstComunas.rows.map(r => r.comuna),
       propietarios:            lstPropietarios.rows,
       comunidades:             lstComunidades.rows.map(r => r.comunidad_nombre),
+      predios:                 lstPredios.rows,
       kpiVisitas:              kpiVisitas.rows[0],
       visitasPorPropietario:   visitasPorPropietario.rows,
       visitasPorExtensionista: visitasPorExtensionista.rows,

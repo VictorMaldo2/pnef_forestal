@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import SelectorPredio from '../../components/SelectorPredio'
 
 const actividadesOpciones = [
   { value: 'recorrido_predial',          label: 'Recorrido predial' },
@@ -22,16 +23,72 @@ const actividadesOpciones = [
   { value: 'otro',                       label: 'Otro' },
 ]
 
-const inputClass = "border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500"
-const labelClass = "block font-semibold mb-1 text-sm text-gray-700"
+const inputClass   = "border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500"
+const labelClass   = "block font-semibold mb-1 text-sm text-gray-700"
 const sectionClass = "bg-gray-50 border rounded p-4 space-y-4"
 const sectionTitle = "font-bold text-green-700 text-lg mb-3 border-b pb-2"
 
+function BuscadorPropietario({ propietarios, value, onChange }) {
+  const [busqueda, setBusqueda] = useState('')
+  const [abierto, setAbierto]   = useState(false)
+  const ref                     = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setAbierto(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const filtrados = propietarios.filter(p =>
+    `${p.nombre} ${p.rut}`.toLowerCase().includes(busqueda.toLowerCase())
+  )
+
+  const seleccionado = propietarios.find(p => p.id.toString() === value)
+
+  function seleccionar(p) { onChange(p); setBusqueda(''); setAbierto(false) }
+  function limpiar() { onChange(null); setBusqueda('') }
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="flex items-center border rounded w-full overflow-hidden focus-within:ring-2 focus-within:ring-green-500">
+        <input type="text"
+          value={seleccionado && !abierto ? `${seleccionado.nombre} — ${seleccionado.rut}` : busqueda}
+          onChange={e => { setBusqueda(e.target.value); setAbierto(true); onChange(null) }}
+          onFocus={() => { setAbierto(true); setBusqueda('') }}
+          placeholder="Buscar propietario por nombre o RUT..."
+          className="flex-1 p-3 text-sm outline-none bg-white" />
+        {value && (
+          <button type="button" onClick={limpiar}
+            className="px-3 text-gray-400 hover:text-gray-600 text-lg">✕</button>
+        )}
+      </div>
+      {abierto && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded shadow-xl max-h-60 overflow-y-auto">
+          {filtrados.length === 0
+            ? <p className="px-4 py-3 text-sm text-gray-400">No se encontraron propietarios</p>
+            : filtrados.map(p => (
+                <button key={p.id} type="button" onClick={() => seleccionar(p)}
+                  className="w-full text-left px-4 py-3 text-sm hover:bg-green-50 hover:text-green-700 transition-colors border-b border-gray-50 last:border-0">
+                  <span className="font-medium">{p.nombre}</span>
+                  <span className="text-gray-400 ml-2">{p.rut}</span>
+                </button>
+              ))
+          }
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function TalonarioTerrenoForm() {
-  const { data: session } = useSession()
-  const router = useRouter()
-  const [propietarios, setPropietarios] = useState([])
+  const { data: session }   = useSession()
+  const router              = useRouter()
+  const [propietarios, setPropietarios]                       = useState([])
   const [propietarioSeleccionado, setPropietarioSeleccionado] = useState(null)
+  const [predioId, setPredioId]                               = useState(null)
+  const [notificacion, setNotificacion]                       = useState(null)
   const [form, setForm] = useState({
     propietario_id: '',
     nro_talonario: '',
@@ -61,7 +118,6 @@ export default function TalonarioTerrenoForm() {
     productos_otro_1_valor: '',
     productos_otro_2: '',
     productos_otro_2_valor: '',
-    firma_propietario: '',
   })
 
   useEffect(() => {
@@ -72,17 +128,27 @@ export default function TalonarioTerrenoForm() {
         const data = await res.json()
         setPropietarios(data)
       } catch (error) {
-        alert(error.message)
+        mostrarNotificacion('Error cargando propietarios: ' + error.message, 'error')
       }
     }
     fetchPropietarios()
   }, [])
 
-  function handlePropietarioChange(e) {
-    const id = e.target.value
-    const prop = propietarios.find(p => p.id.toString() === id)
-    setPropietarioSeleccionado(prop || null)
-    setForm(prev => ({ ...prev, propietario_id: id }))
+  function mostrarNotificacion(mensaje, tipo = 'success') {
+    setNotificacion({ mensaje, tipo })
+    setTimeout(() => setNotificacion(null), tipo === 'success' ? 3000 : 4000)
+  }
+
+  function handlePropietarioChange(prop) {
+    if (prop) {
+      setPropietarioSeleccionado(prop)
+      setForm(prev => ({ ...prev, propietario_id: prop.id.toString() }))
+      setPredioId(null)
+    } else {
+      setPropietarioSeleccionado(null)
+      setForm(prev => ({ ...prev, propietario_id: '' }))
+      setPredioId(null)
+    }
   }
 
   function handleChange(e) {
@@ -102,34 +168,42 @@ export default function TalonarioTerrenoForm() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.propietario_id) return alert('Debe seleccionar un propietario.')
-    if (!form.tipo_recurso)   return alert('Debe seleccionar el tipo de recurso.')
-    if (form.actividades.length === 0) return alert('Debe seleccionar al menos una actividad.')
+    if (!form.propietario_id) { mostrarNotificacion('Debe seleccionar un propietario.', 'error'); return }
+    if (!form.tipo_recurso)   { mostrarNotificacion('Debe seleccionar el tipo de recurso.', 'error'); return }
+    if (form.actividades.length === 0) { mostrarNotificacion('Debe seleccionar al menos una actividad.', 'error'); return }
 
     try {
       const res = await fetch('/api/talonario_terreno', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({ ...form, predio_id: predioId })
       })
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error || 'Error desconocido')
       }
-      alert('Talonario registrado con éxito')
+      mostrarNotificacion('Talonario registrado con éxito', 'success')
     } catch (error) {
-      alert('Error: ' + error.message)
+      mostrarNotificacion('Error: ' + error.message, 'error')
     }
   }
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded shadow space-y-6">
 
-      {/* ← ÚNICO CAMBIO: botón volver */}
-      <button
-        onClick={() => router.push('/extensionista')}
-        className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition"
-      >
+      {notificacion && (
+        <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg transition-all duration-300 ${
+          notificacion.tipo === 'success'
+            ? 'bg-green-50 border-green-400 text-green-800'
+            : 'bg-red-50 border-red-400 text-red-800'
+        }`}>
+          <span className="text-lg font-bold">{notificacion.tipo === 'success' ? '✓' : '✕'}</span>
+          <p className="text-sm font-medium">{notificacion.mensaje}</p>
+        </div>
+      )}
+
+      <button onClick={() => router.push('/extensionista')}
+        className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition">
         ← Volver al Dashboard
       </button>
 
@@ -148,7 +222,7 @@ export default function TalonarioTerrenoForm() {
                 onChange={handleChange} className={inputClass} placeholder="N°" />
             </div>
             <div>
-              <label className={labelClass}>Fecha</label>
+              <label className={labelClass}>Fecha de la Visita *</label>
               <input name="fecha" type="date" value={form.fecha}
                 onChange={handleChange} className={inputClass} required />
             </div>
@@ -173,13 +247,11 @@ export default function TalonarioTerrenoForm() {
           <h2 className={sectionTitle}>I. Antecedentes del Propietario</h2>
           <div>
             <label className={labelClass}>Propietario/a</label>
-            <select value={form.propietario_id} onChange={handlePropietarioChange}
-              required className={inputClass}>
-              <option value="">Seleccione un propietario</option>
-              {propietarios.map(p => (
-                <option key={p.id} value={p.id}>{p.nombre} — {p.rut}</option>
-              ))}
-            </select>
+            <BuscadorPropietario
+              propietarios={propietarios}
+              value={form.propietario_id}
+              onChange={handlePropietarioChange}
+            />
           </div>
 
           {propietarioSeleccionado && (
@@ -190,6 +262,12 @@ export default function TalonarioTerrenoForm() {
               <div><span className="font-semibold">Etnia:</span> {propietarioSeleccionado.comunidad_nombre || '—'}</div>
             </div>
           )}
+
+          <SelectorPredio
+            propietarioId={form.propietario_id}
+            value={predioId}
+            onChange={setPredioId}
+          />
 
           <div className="grid grid-cols-3 gap-4 mt-2">
             <div>
@@ -337,16 +415,6 @@ export default function TalonarioTerrenoForm() {
                 value={form.productos_otro_2_valor} onChange={handleChange}
                 className={inputClass} placeholder="0" />
             </div>
-          </div>
-        </div>
-
-        {/* Firma */}
-        <div className={sectionClass}>
-          <h2 className={sectionTitle}>Firma</h2>
-          <div>
-            <label className={labelClass}>Firma Propietario / Persona presente</label>
-            <input name="firma_propietario" value={form.firma_propietario}
-              onChange={handleChange} className={inputClass} placeholder="Firma" />
           </div>
         </div>
 

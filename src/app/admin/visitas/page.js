@@ -72,11 +72,16 @@ function ModalEditar({ visita, onClose, onGuardar }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Actividad</label>
-            <input type="text" name="actividad" value={form.actividad}
-              onChange={handleChange} placeholder="Actividad a realizar"
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
-          </div>
+  <label className="block text-sm font-semibold text-gray-700 mb-1">Actividad</label>
+  <select name="actividad" value={form.actividad} onChange={handleChange}
+    className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm">
+    <option value="">Seleccione actividad</option>
+    <option value="Inspección">Visita jornada marcación</option>
+    <option value="Revisión">Visita talonario terreno</option>
+    <option value="Mantenimiento">Visita regular</option>
+    <option value="Capacitación">Capacitación</option>
+  </select>
+</div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Observaciones</label>
             <textarea name="observaciones" value={form.observaciones}

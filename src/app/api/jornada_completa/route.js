@@ -11,14 +11,11 @@ const pool = new Pool({
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-    }
+    if (!session) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
     const esAdmin = session.user.roleId === 1
     const id      = session.user.id
 
-    // Talonarios
     const talonarios = await pool.query(`
       SELECT
         tt.*,
@@ -28,15 +25,17 @@ export async function GET() {
         p.rut        AS propietario_rut,
         p.comuna     AS propietario_comuna,
         u.nombre     AS extensionista_nombre,
-        u.rut        AS extensionista_rut
+        u.rut        AS extensionista_rut,
+        pr.nombre    AS predio_nombre,
+        pr.rol       AS predio_rol
       FROM talonario_terreno tt
-      LEFT JOIN propietarios p ON p.id = tt.propietario_id
-      LEFT JOIN usuarios     u ON u.id::text = tt.extensionista_id::text
+      LEFT JOIN propietarios p  ON p.id = tt.propietario_id
+      LEFT JOIN usuarios u      ON u.id::text = tt.extensionista_id::text
+      LEFT JOIN predios pr      ON pr.id = tt.predio_id
       ${!esAdmin ? `WHERE tt.extensionista_id::text = $1` : ''}
       ORDER BY tt.fecha DESC
     `, !esAdmin ? [id] : [])
 
-    // Jornadas de marcación
     const marcaciones = await pool.query(`
       SELECT
         jm.*,
@@ -46,10 +45,13 @@ export async function GET() {
         p.rut            AS propietario_rut,
         p.comuna         AS propietario_comuna,
         u.nombre         AS extensionista_nombre,
-        u.rut            AS extensionista_rut
+        u.rut            AS extensionista_rut,
+        pr.nombre        AS predio_nombre,
+        pr.rol           AS predio_rol
       FROM jornada_marcacion jm
-      LEFT JOIN propietarios p ON p.id = jm.propietario_id
-      LEFT JOIN usuarios     u ON u.id::text = jm.extensionista_id::text
+      LEFT JOIN propietarios p  ON p.id = jm.propietario_id
+      LEFT JOIN usuarios u      ON u.id::text = jm.extensionista_id::text
+      LEFT JOIN predios pr      ON pr.id = jm.predio_id
       ${!esAdmin ? `WHERE jm.extensionista_id::text = $1` : ''}
       ORDER BY jm.fecha_jornada DESC
     `, !esAdmin ? [id] : [])

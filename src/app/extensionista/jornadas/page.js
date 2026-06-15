@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import SelectorPredio from '../../components/SelectorPredio'
 
 const actividadesOpciones = [
   { value: 'supresion_de_especies_exoticas', label: 'Supresión de Especies Exóticas' },
@@ -21,17 +22,72 @@ const actividadesOpciones = [
   { value: 'actividades_otros', label: 'Otras' },
 ]
 
+function BuscadorPropietario({ propietarios, value, onChange }) {
+  const [busqueda, setBusqueda] = useState('')
+  const [abierto, setAbierto]   = useState(false)
+  const ref                     = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setAbierto(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const filtrados = propietarios.filter(p =>
+    `${p.nombre} ${p.rut}`.toLowerCase().includes(busqueda.toLowerCase())
+  )
+
+  const seleccionado = propietarios.find(p => p.id.toString() === value)
+
+  function seleccionar(p) { onChange(p); setBusqueda(''); setAbierto(false) }
+  function limpiar() { onChange(null); setBusqueda('') }
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="flex items-center border rounded w-full overflow-hidden focus-within:ring-2 focus-within:ring-green-500">
+        <input type="text"
+          value={seleccionado && !abierto ? `${seleccionado.nombre} - ${seleccionado.rut}` : busqueda}
+          onChange={e => { setBusqueda(e.target.value); setAbierto(true); onChange(null) }}
+          onFocus={() => { setAbierto(true); setBusqueda('') }}
+          placeholder="Buscar propietario por nombre o RUT..."
+          className="flex-1 p-3 text-sm outline-none" />
+        {value && (
+          <button type="button" onClick={limpiar}
+            className="px-3 text-gray-400 hover:text-gray-600 text-lg">✕</button>
+        )}
+      </div>
+      {abierto && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded shadow-xl max-h-60 overflow-y-auto">
+          {filtrados.length === 0
+            ? <p className="px-4 py-3 text-sm text-gray-400">No se encontraron propietarios</p>
+            : filtrados.map(p => (
+                <button key={p.id} type="button" onClick={() => seleccionar(p)}
+                  className="w-full text-left px-4 py-3 text-sm hover:bg-green-50 hover:text-green-700 transition-colors border-b border-gray-50 last:border-0">
+                  <span className="font-medium">{p.nombre}</span>
+                  <span className="text-gray-400 ml-2">{p.rut}</span>
+                </button>
+              ))
+          }
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function JornadaMarcacionForm() {
   const { data: session } = useSession()
-  const router = useRouter()
+  const router            = useRouter()
   const [propietarios, setPropietarios] = useState([])
+  const [predioId, setPredioId]         = useState(null)
+  const [notificacion, setNotificacion] = useState(null)
   const [form, setForm] = useState({
     propietario_id: '',
     rut: '',
     comunidad_indigena: false,
     comunidad_nombre: '',
     tipo_propietario: '',
-    nombre_predio: '',
     rol: '',
     nro_resolucion: '',
     fecha_resolucion: '',
@@ -52,8 +108,6 @@ export default function JornadaMarcacionForm() {
     prescripciones: '',
     medidas_proteccion: '',
     materiales_utilizados: '',
-    firma_supervisor: '',
-    firma_propietario: ''
   })
 
   useEffect(() => {
@@ -64,24 +118,28 @@ export default function JornadaMarcacionForm() {
         const data = await res.json()
         setPropietarios(data)
       } catch (error) {
-        alert(error.message)
+        mostrarNotificacion('Error cargando propietarios: ' + error.message, 'error')
       }
     }
     fetchPropietarios()
   }, [])
 
-  function handlePropietarioChange(e) {
-    const id = e.target.value
-    const prop = propietarios.find(p => p.id.toString() === id)
+  function mostrarNotificacion(mensaje, tipo = 'success') {
+    setNotificacion({ mensaje, tipo })
+    setTimeout(() => setNotificacion(null), tipo === 'success' ? 3000 : 4000)
+  }
+
+  function handlePropietarioChange(prop) {
     if (prop) {
       setForm(prev => ({
         ...prev,
-        propietario_id: id,
-        rut: prop.rut,
+        propietario_id:     prop.id.toString(),
+        rut:                prop.rut,
         comunidad_indigena: prop.comunidad_indigena,
-        comunidad_nombre: prop.comunidad_nombre || '',
-        tipo_propietario: prop.tipo_propietario || ''
+        comunidad_nombre:   prop.comunidad_nombre || '',
+        tipo_propietario:   prop.tipo_propietario || ''
       }))
+      setPredioId(null)
     } else {
       setForm(prev => ({
         ...prev,
@@ -91,15 +149,13 @@ export default function JornadaMarcacionForm() {
         comunidad_nombre: '',
         tipo_propietario: ''
       }))
+      setPredioId(null)
     }
   }
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target
-    setForm(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }))
+    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
   }
 
   function handleActividadChange(e) {
@@ -114,51 +170,36 @@ export default function JornadaMarcacionForm() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-
-    if (!form.propietario_id) {
-      alert('Debe seleccionar un propietario válido.')
-      return
-    }
-    if (!form.fecha_jornada) {
-      alert('Debe seleccionar la fecha de la jornada.')
-      return
-    }
-    if (form.actividades.length === 0) {
-      alert('Debe seleccionar al menos una actividad.')
-      return
-    }
+    if (!form.propietario_id) { mostrarNotificacion('Debe seleccionar un propietario válido.', 'error'); return }
+    if (!form.fecha_jornada)  { mostrarNotificacion('Debe seleccionar la fecha de la jornada.', 'error'); return }
+    if (form.actividades.length === 0) { mostrarNotificacion('Debe seleccionar al menos una actividad.', 'error'); return }
 
     const actividadesFinal = form.actividades.includes('actividades_otros')
-      ? [
-          ...form.actividades.filter(a => a !== 'actividades_otros'),
-          form.actividad_otro
-        ].filter(Boolean)
+      ? [...form.actividades.filter(a => a !== 'actividades_otros'), form.actividad_otro].filter(Boolean)
       : form.actividades
 
     const payload = {
-      propietario_id: form.propietario_id,
-      nombre_predio: form.nombre_predio,
-      rol: form.rol,
-      nro_resolucion: form.nro_resolucion,
-      fecha_resolucion: form.fecha_resolucion,
-      fecha_jornada: form.fecha_jornada,
-      punto_referencia_huso: form.punto_referencia_huso,
-      punto_referencia_este: form.punto_referencia_este,
-      punto_referencia_norte: form.punto_referencia_norte,
-      superficie_total_predio: form.superficie_total_predio,
-      superficie_bajo_regimen: form.superficie_bajo_regimen,
-      superficie_manejada: form.superficie_manejada,
-      superficie_bosque_nativo: form.superficie_bosque_nativo,
+      propietario_id:               form.propietario_id,
+      predio_id:                    predioId,
+      rol:                          form.rol,
+      nro_resolucion:               form.nro_resolucion,
+      fecha_resolucion:             form.fecha_resolucion,
+      fecha_jornada:                form.fecha_jornada,
+      punto_referencia_huso:        form.punto_referencia_huso,
+      punto_referencia_este:        form.punto_referencia_este,
+      punto_referencia_norte:       form.punto_referencia_norte,
+      superficie_total_predio:      form.superficie_total_predio,
+      superficie_bajo_regimen:      form.superficie_bajo_regimen,
+      superficie_manejada:          form.superficie_manejada,
+      superficie_bosque_nativo:     form.superficie_bosque_nativo,
       superficie_anual_planificada: form.superficie_anual_planificada,
-      superficie_marcada: form.superficie_marcada,
-      superficie_marcada_km: form.superficie_marcada_km,
-      observaciones: form.observaciones,
-      prescripciones: form.prescripciones,
-      medidas_proteccion: form.medidas_proteccion,
-      materiales_utilizados: form.materiales_utilizados,
-      firma_supervisor: form.firma_supervisor,
-      firma_propietario: form.firma_propietario,
-      actividades: actividadesFinal
+      superficie_marcada:           form.superficie_marcada,
+      superficie_marcada_km:        form.superficie_marcada_km,
+      observaciones:                form.observaciones,
+      prescripciones:               form.prescripciones,
+      medidas_proteccion:           form.medidas_proteccion,
+      materiales_utilizados:        form.materiales_utilizados,
+      actividades:                  actividadesFinal
     }
 
     try {
@@ -167,262 +208,168 @@ export default function JornadaMarcacionForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-
       if (!res.ok) {
         const errorData = await res.json()
         throw new Error(errorData.error || 'Error desconocido')
       }
-
-      alert('Jornada registrada con éxito')
+      mostrarNotificacion('Jornada registrada con éxito', 'success')
     } catch (error) {
-      alert('Error al enviar los datos: ' + error.message)
+      mostrarNotificacion('Error al enviar los datos: ' + error.message, 'error')
     }
   }
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded shadow">
 
-      {/* ← ÚNICO CAMBIO: botón volver */}
-      <button
-        onClick={() => router.push('/extensionista')}
-        className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition mb-4"
-      >
+      {notificacion && (
+        <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg transition-all duration-300 ${
+          notificacion.tipo === 'success'
+            ? 'bg-green-50 border-green-400 text-green-800'
+            : 'bg-red-50 border-red-400 text-red-800'
+        }`}>
+          <span className="text-lg font-bold">{notificacion.tipo === 'success' ? '✓' : '✕'}</span>
+          <p className="text-sm font-medium">{notificacion.mensaje}</p>
+        </div>
+      )}
+
+      <button onClick={() => router.push('/extensionista')}
+        className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition mb-4">
         ← Volver al Dashboard
       </button>
 
       <h1 className="text-3xl font-bold mb-6 text-center">Registrar Jornada de Marcación</h1>
+
       <form onSubmit={handleSubmit} className="space-y-6">
 
         {/* Propietario */}
         <div>
           <label className="block font-semibold mb-2">Propietario</label>
-          <select
+          <BuscadorPropietario
+            propietarios={propietarios}
             value={form.propietario_id}
             onChange={handlePropietarioChange}
-            required
-            className="border p-3 rounded w-full"
-          >
-            <option value="">Seleccione un propietario</option>
-            {propietarios.map(p => (
-              <option key={p.id} value={p.id}>{p.nombre} - {p.rut}</option>
-            ))}
-          </select>
-          <p className="text-sm mt-1">RUT: {form.rut}</p>
-          <p className="text-sm">Comunidad indígena: {form.comunidad_nombre}</p>
-          <p className="text-sm">Tipo: {form.tipo_propietario}</p>
+          />
+          {form.propietario_id && (
+            <div className="mt-2 text-sm text-gray-600 space-y-0.5">
+              <p>RUT: {form.rut}</p>
+              <p>Comunidad indígena: {form.comunidad_nombre || '—'}</p>
+              <p>Tipo: {form.tipo_propietario || '—'}</p>
+            </div>
+          )}
         </div>
+
+        {/* Selector de predio */}
+        <SelectorPredio
+          propietarioId={form.propietario_id}
+          value={predioId}
+          onChange={setPredioId}
+        />
 
         {/* Datos básicos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            name="fecha_jornada"
-            type="date"
-            value={form.fecha_jornada}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-            required
-          />
-          <input
-            name="nro_resolucion"
-            placeholder="N° de Resolución Plan Manejo"
-            value={form.nro_resolucion}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="fecha_resolucion"
-            type="date"
-            value={form.fecha_resolucion}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="nombre_predio"
-            placeholder="Nombre del Predio"
-            value={form.nombre_predio}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="rol"
-            placeholder="ROL"
-            value={form.rol}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="punto_referencia_huso"
-            placeholder="Punto Referencia HUSO"
-            value={form.punto_referencia_huso}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="punto_referencia_este"
-            type="number"
-            step="0.01"
-            placeholder="Punto Referencia ESTE (m)"
-            value={form.punto_referencia_este}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="punto_referencia_norte"
-            type="number"
-            step="0.01"
-            placeholder="Punto Referencia NORTE (m)"
-            value={form.punto_referencia_norte}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Fecha de la Jornada *</label>
+            <input name="fecha_jornada" type="date" value={form.fecha_jornada}
+              onChange={handleChange} className="border p-3 rounded w-full" required />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">N° de Resolución Plan Manejo</label>
+            <input name="nro_resolucion" placeholder="N° de Resolución"
+              value={form.nro_resolucion} onChange={handleChange}
+              className="border p-3 rounded w-full" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Fecha de la Resolución</label>
+            <input name="fecha_resolucion" type="date" value={form.fecha_resolucion}
+              onChange={handleChange} className="border p-3 rounded w-full" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">ROL</label>
+            <input name="rol" placeholder="ROL" value={form.rol}
+              onChange={handleChange} className="border p-3 rounded w-full" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Punto Referencia HUSO</label>
+            <input name="punto_referencia_huso" placeholder="HUSO"
+              value={form.punto_referencia_huso} onChange={handleChange}
+              className="border p-3 rounded w-full" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Punto Referencia ESTE (m)</label>
+            <input name="punto_referencia_este" type="number" step="0.01"
+              placeholder="ESTE" value={form.punto_referencia_este}
+              onChange={handleChange} className="border p-3 rounded w-full" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Punto Referencia NORTE (m)</label>
+            <input name="punto_referencia_norte" type="number" step="0.01"
+              placeholder="NORTE" value={form.punto_referencia_norte}
+              onChange={handleChange} className="border p-3 rounded w-full" />
+          </div>
         </div>
 
         {/* Superficies */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <input
-            name="superficie_total_predio"
-            type="number"
-            step="0.01"
-            placeholder="Superficie total (Ha)"
-            value={form.superficie_total_predio}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="superficie_bajo_regimen"
-            type="number"
-            step="0.01"
-            placeholder="Superficie bajo régimen (Ha)"
-            value={form.superficie_bajo_regimen}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="superficie_manejada"
-            type="number"
-            step="0.01"
-            placeholder="Superficie manejada (Ha)"
-            value={form.superficie_manejada}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="superficie_bosque_nativo"
-            type="number"
-            step="0.01"
-            placeholder="Superficie bosque nativo (Ha)"
-            value={form.superficie_bosque_nativo}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="superficie_anual_planificada"
-            type="number"
-            step="0.01"
-            placeholder="Superficie anual planificada (Ha)"
-            value={form.superficie_anual_planificada}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="superficie_marcada"
-            type="number"
-            step="0.01"
-            placeholder="Superficie marcada (Ha)"
-            value={form.superficie_marcada}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
-          <input
-            name="superficie_marcada_km"
-            type="number"
-            step="0.01"
-            placeholder="Superficie marcada (Km)"
-            value={form.superficie_marcada_km}
-            onChange={handleChange}
-            className="border p-3 rounded w-full"
-          />
+          <input name="superficie_total_predio" type="number" step="0.01"
+            placeholder="Superficie total (Ha)" value={form.superficie_total_predio}
+            onChange={handleChange} className="border p-3 rounded w-full" />
+          <input name="superficie_bajo_regimen" type="number" step="0.01"
+            placeholder="Superficie bajo régimen (Ha)" value={form.superficie_bajo_regimen}
+            onChange={handleChange} className="border p-3 rounded w-full" />
+          <input name="superficie_manejada" type="number" step="0.01"
+            placeholder="Superficie manejada (Ha)" value={form.superficie_manejada}
+            onChange={handleChange} className="border p-3 rounded w-full" />
+          <input name="superficie_bosque_nativo" type="number" step="0.01"
+            placeholder="Superficie bosque nativo (Ha)" value={form.superficie_bosque_nativo}
+            onChange={handleChange} className="border p-3 rounded w-full" />
+          <input name="superficie_anual_planificada" type="number" step="0.01"
+            placeholder="Superficie anual planificada (Ha)" value={form.superficie_anual_planificada}
+            onChange={handleChange} className="border p-3 rounded w-full" />
+          <input name="superficie_marcada" type="number" step="0.01"
+            placeholder="Superficie marcada (Ha)" value={form.superficie_marcada}
+            onChange={handleChange} className="border p-3 rounded w-full" />
+          <input name="superficie_marcada_km" type="number" step="0.01"
+            placeholder="Superficie marcada (Km)" value={form.superficie_marcada_km}
+            onChange={handleChange} className="border p-3 rounded w-full" />
         </div>
 
-        {/* Actividades con checkboxes */}
+        {/* Actividades */}
         <fieldset className="border p-4 rounded">
           <legend className="font-semibold mb-3">Actividades Realizadas</legend>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {actividadesOpciones.map(({ value, label }) => (
               <label key={value} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  value={value}
+                <input type="checkbox" value={value}
                   checked={form.actividades.includes(value)}
                   onChange={handleActividadChange}
-                  className="w-4 h-4 accent-green-600"
-                />
+                  className="w-4 h-4 accent-green-600" />
                 <span className="text-sm">{label}</span>
               </label>
             ))}
           </div>
           {form.actividades.includes('actividades_otros') && (
-            <input
-              type="text"
-              name="actividad_otro"
-              value={form.actividad_otro}
-              onChange={handleChange}
-              placeholder="Especifique otra actividad"
-              className="border p-3 rounded w-full mt-3"
-            />
+            <input type="text" name="actividad_otro" value={form.actividad_otro}
+              onChange={handleChange} placeholder="Especifique otra actividad"
+              className="border p-3 rounded w-full mt-3" />
           )}
         </fieldset>
 
         {/* Textos */}
-        <textarea
-          name="observaciones"
-          placeholder="Observaciones"
-          value={form.observaciones}
-          onChange={handleChange}
-          className="w-full h-24 border p-3 rounded"
-        />
-        <textarea
-          name="prescripciones"
-          placeholder="Prescripciones técnicas"
-          value={form.prescripciones}
-          onChange={handleChange}
-          className="w-full h-24 border p-3 rounded"
-        />
-        <textarea
-          name="medidas_proteccion"
-          placeholder="Medidas de protección"
-          value={form.medidas_proteccion}
-          onChange={handleChange}
-          className="w-full h-24 border p-3 rounded"
-        />
-        <textarea
-          name="materiales_utilizados"
-          placeholder="Materiales utilizados (separados por comas)"
-          value={form.materiales_utilizados}
-          onChange={handleChange}
-          className="w-full h-20 border p-3 rounded"
-        />
+        <textarea name="observaciones" placeholder="Observaciones"
+          value={form.observaciones} onChange={handleChange}
+          className="w-full h-24 border p-3 rounded" />
+        <textarea name="prescripciones" placeholder="Prescripciones técnicas"
+          value={form.prescripciones} onChange={handleChange}
+          className="w-full h-24 border p-3 rounded" />
+        <textarea name="medidas_proteccion" placeholder="Medidas de protección"
+          value={form.medidas_proteccion} onChange={handleChange}
+          className="w-full h-24 border p-3 rounded" />
+        <textarea name="materiales_utilizados" placeholder="Materiales utilizados (separados por comas)"
+          value={form.materiales_utilizados} onChange={handleChange}
+          className="w-full h-20 border p-3 rounded" />
 
-        {/* Firmas */}
-        <input
-          name="firma_supervisor"
-          placeholder="Firma Supervisor"
-          value={form.firma_supervisor}
-          onChange={handleChange}
-          className="w-full p-3 border rounded"
-        />
-        <input
-          name="firma_propietario"
-          placeholder="Firma Propietario"
-          value={form.firma_propietario}
-          onChange={handleChange}
-          className="w-full p-3 border rounded"
-        />
-
-        <button
-          type="submit"
-          className="bg-green-600 text-white py-3 px-6 rounded hover:bg-green-700 transition w-full"
-        >
+        <button type="submit"
+          className="bg-green-600 text-white py-3 px-6 rounded hover:bg-green-700 transition w-full">
           Enviar Jornada
         </button>
       </form>

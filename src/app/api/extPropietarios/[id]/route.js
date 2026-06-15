@@ -1,15 +1,23 @@
 import { NextResponse } from 'next/server'
-import { pool } from '../../../../lib/db'  // Ajusta ruta según estructura
+import { pool } from '../../../../lib/db'
 
-// Fuerza el modo dinámico para acceder correctamente a params
 export const dynamic = 'force-dynamic'
 
 export async function PUT(request, context) {
-  const params = await context.params  // await para resolver la promesa
+  const params = await context.params
   const id = params.id
 
   try {
-    const { nombre, rut, comunidad_indigena, comuna, tipo_propietario } = await request.json()
+    const {
+      nombre,
+      rut,
+      comunidad_indigena,
+      comunidad_nombre,
+      comuna,
+      tipo_propietario,
+      telefono,
+      email,
+    } = await request.json()
 
     const comunidadBool = comunidad_indigena === true || comunidad_indigena === 'true'
 
@@ -18,12 +26,25 @@ export async function PUT(request, context) {
          nombre=$1,
          rut=$2,
          comunidad_indigena=$3,
-         comuna=$4,
-         tipo_propietario=$5,
+         comunidad_nombre=$4,
+         comuna=$5,
+         tipo_propietario=$6,
+         telefono=$7,
+         email=$8,
          actualizado_en=NOW()
-       WHERE id=$6
+       WHERE id=$9
        RETURNING *`,
-      [nombre, rut, comunidadBool, comuna, tipo_propietario, id]
+      [
+        nombre,
+        rut,
+        comunidadBool,
+        comunidadBool ? (comunidad_nombre || null) : null,
+        comuna || null,
+        tipo_propietario || null,
+        telefono || null,
+        email || null,
+        id,
+      ]
     )
 
     if (result.rowCount === 0) {

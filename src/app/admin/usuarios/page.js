@@ -15,6 +15,51 @@ const FORM_VACIO = {
   rut: '', telefono: '', role_id: '2'
 }
 
+function Notificacion({ notificacion }) {
+  if (!notificacion) return null
+  const estilos = {
+    success: 'bg-green-50 border-green-400 text-green-800',
+    error:   'bg-red-50 border-red-400 text-red-800',
+    warning: 'bg-yellow-50 border-yellow-400 text-yellow-800',
+  }
+  const iconos = { success: '✓', error: '✕', warning: '⚠' }
+  return (
+    <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg ${estilos[notificacion.tipo]}`}>
+      <span className="text-lg font-bold">{iconos[notificacion.tipo]}</span>
+      <p className="text-sm font-medium">{notificacion.mensaje}</p>
+    </div>
+  )
+}
+
+function ModalConfirmar({ config, onConfirmar, onCancelar }) {
+  if (!config) return null
+  const estilos = {
+    danger:  { btn: 'bg-red-600 hover:bg-red-700',    icono: '⚠', titulo: 'text-red-700' },
+  }
+  const estilo = estilos[config.tipo] || estilos.danger
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{estilo.icono}</span>
+          <h3 className={`text-lg font-bold ${estilo.titulo}`}>{config.titulo}</h3>
+        </div>
+        <p className="text-sm text-gray-600">{config.mensaje}</p>
+        <div className="flex gap-3 pt-2">
+          <button onClick={onCancelar}
+            className="flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+            Cancelar
+          </button>
+          <button onClick={onConfirmar}
+            className={`flex-1 text-white py-2 rounded-lg transition text-sm font-semibold ${estilo.btn}`}>
+            {config.btnConfirmar}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ModalUsuario({ usuario, onClose, onGuardar }) {
   const esEdicion = !!usuario
   const [form, setForm] = useState(
@@ -28,7 +73,7 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
     } : { ...FORM_VACIO }
   )
   const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]         = useState('')
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -65,7 +110,6 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
               {error}
             </div>
           )}
-
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Nombre completo <span className="text-red-500">*</span>
@@ -74,7 +118,6 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
               onChange={handleChange} placeholder="Nombre completo"
               className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
           </div>
-
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Email <span className="text-red-500">*</span>
@@ -83,7 +126,6 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
               onChange={handleChange} placeholder="correo@ejemplo.com"
               className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
           </div>
-
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               {esEdicion ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña'}{!esEdicion && <span className="text-red-500"> *</span>}
@@ -92,7 +134,6 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
               onChange={handleChange} placeholder={esEdicion ? 'Nueva contraseña (opcional)' : 'Contraseña'}
               className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -109,7 +150,6 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
                 className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Rol <span className="text-red-500">*</span>
@@ -139,15 +179,26 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
 
 export default function AdminUsuarios() {
   const router = useRouter()
-  const [usuarios, setUsuarios]         = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState(null)
-  const [usuarioModal, setUsuarioModal] = useState(null)
-  const [modalAbierto, setModalAbierto] = useState(false)
+  const [usuarios, setUsuarios]           = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
+  const [usuarioModal, setUsuarioModal]   = useState(null)
+  const [modalAbierto, setModalAbierto]   = useState(false)
+  const [notificacion, setNotificacion]   = useState(null)
+  const [modalConfirmar, setModalConfirmar] = useState(null)
+
+  useEffect(() => {
+    if (!notificacion) return
+    const t = setTimeout(() => setNotificacion(null), 3000)
+    return () => clearTimeout(t)
+  }, [notificacion])
+
+  function mostrarNotificacion(mensaje, tipo = 'success') {
+    setNotificacion({ mensaje, tipo })
+  }
 
   useEffect(() => {
     let activo = true
-
     async function cargar() {
       try {
         const res = await fetch('/api/usuarios')
@@ -160,7 +211,6 @@ export default function AdminUsuarios() {
         if (activo) setLoading(false)
       }
     }
-
     cargar()
     return () => { activo = false }
   }, [])
@@ -186,31 +236,43 @@ export default function AdminUsuarios() {
         role_id:  parseInt(datos.role_id),
         rol:      datos.role_id === '1' ? 'Administrador' : 'Extensionista'
       } : u))
-      alert('Usuario modificado correctamente')
+      mostrarNotificacion('Usuario modificado correctamente', 'success')
     } else {
-      // Recargar lista para obtener el nuevo usuario con su id
       const res2 = await fetch('/api/usuarios')
       const data = await res2.json()
       setUsuarios(data)
-      alert('Usuario creado correctamente')
+      mostrarNotificacion('Usuario creado correctamente', 'success')
     }
   }
 
-  async function handleEliminar(id) {
-    if (!confirm('¿Estás seguro de que quieres eliminar este usuario? Esta acción no se puede deshacer.')) return
-    try {
-      const res = await fetch('/api/usuarios', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Error al eliminar')
-      setUsuarios(prev => prev.filter(u => u.id !== id))
-      alert('Usuario eliminado correctamente')
-    } catch (error) {
-      alert('Error: ' + error.message)
-    }
+  function confirmarEliminar(id) {
+    setModalConfirmar({
+      titulo:       '¿Eliminar usuario?',
+      mensaje:      'Esta acción eliminará permanentemente al usuario. ¿Estás seguro?',
+      btnConfirmar: 'Sí, eliminar',
+      tipo:         'danger',
+      accion:       async () => {
+        try {
+          const res = await fetch('/api/usuarios', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+          })
+          const json = await res.json()
+          if (!res.ok) throw new Error(json.error || 'Error al eliminar')
+          setUsuarios(prev => prev.filter(u => u.id !== id))
+          mostrarNotificacion('Usuario eliminado correctamente', 'warning')
+        } catch (error) {
+          mostrarNotificacion('Error: ' + error.message, 'error')
+        }
+      }
+    })
+  }
+
+  async function ejecutarConfirmacion() {
+    const accion = modalConfirmar?.accion
+    setModalConfirmar(null)
+    if (accion) await accion()
   }
 
   if (loading) return (
@@ -239,7 +301,13 @@ export default function AdminUsuarios() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
 
-        {/* Header */}
+        <Notificacion notificacion={notificacion} />
+        <ModalConfirmar
+          config={modalConfirmar}
+          onConfirmar={ejecutarConfirmacion}
+          onCancelar={() => setModalConfirmar(null)}
+        />
+
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-6 border-b border-green-100">
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-800 to-green-600 bg-clip-text text-transparent leading-tight">
@@ -263,7 +331,6 @@ export default function AdminUsuarios() {
           </div>
         </div>
 
-        {/* Tabla */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-green-100 overflow-hidden">
           <div className="px-6 py-8 sm:px-8 border-b border-green-50 bg-gradient-to-r from-green-50 to-green-100">
             <div className="flex items-center gap-3">
@@ -344,7 +411,7 @@ export default function AdminUsuarios() {
                             className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs font-medium transition">
                             Modificar
                           </button>
-                          <button onClick={() => handleEliminar(user.id)}
+                          <button onClick={() => confirmarEliminar(user.id)}
                             className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs font-medium transition">
                             Eliminar
                           </button>
@@ -359,7 +426,6 @@ export default function AdminUsuarios() {
         </div>
       </div>
 
-      {/* Modal */}
       {modalAbierto && (
         <ModalUsuario
           usuario={usuarioModal}

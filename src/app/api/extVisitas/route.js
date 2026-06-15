@@ -1,60 +1,28 @@
 import { NextResponse } from 'next/server'
-import { pool } from '../../../lib/db'  // Ruta relativa desde api/extVisitas
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../auth/[...nextauth]/route'  // Ajusta ruta según estructura
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../auth/[...nextauth]/route'
+import { pool } from '../../../lib/db'
 
-export async function GET() {
+export async function POST(req) {
   try {
-    const result = await pool.query(`
-      SELECT 
-        v.id,
-        v.fecha_visita,
-        v.hora_visita,
-        v.estado,
-        v.observaciones,
-        v.actividad,
-        p.nombre AS propietario_nombre,
-        p.rut AS propietario_rut
-      FROM visitass v
-      JOIN propietarios p ON v.propietario_id = p.id
-      ORDER BY v.fecha_visita DESC, v.hora_visita DESC
-    `)
-    return NextResponse.json(result.rows)
-  } catch (error) {
-    console.error('Error en GET /api/extVisitas:', error)
-    return NextResponse.json({ error: 'Error al obtener visitas' }, { status: 500 })
-  }
-}
-
-export async function POST(request) {
-  try {
-    // Validar sesión y obtener extensionista_id seguro
     const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    if (!session) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+
+    const { propietario_id, predio_id, fecha_visita, hora_visita, actividad, descripcion, estado } = await req.json()
+
+    if (!propietario_id || !fecha_visita) {
+      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
     }
 
-    const extensionista_id = session.user.id
-
-    const {
-      propietario_id,
-      fecha_visita,
-      hora_visita = '00:00',
-      estado,
-      observaciones,
-      actividad
-    } = await request.json()
-
     const result = await pool.query(
-      `INSERT INTO visitass (propietario_id, extensionista_id, fecha_visita, hora_visita, estado, observaciones, actividad, creado_en, actualizado_en)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      `INSERT INTO visitass (propietario_id, extensionista_id, predio_id, fecha_visita, hora_visita, actividad, observaciones, estado)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [propietario_id, extensionista_id, fecha_visita, hora_visita, estado, observaciones, actividad]
+      [propietario_id, session.user.id, predio_id || null, fecha_visita, hora_visita || null, actividad || null, descripcion || null, estado || 'pendiente']
     )
-
-    return NextResponse.json(result.rows[0])
+    return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error) {
     console.error('Error en POST /api/extVisitas:', error)
-    return NextResponse.json({ error: 'Error al crear visita: ' + error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

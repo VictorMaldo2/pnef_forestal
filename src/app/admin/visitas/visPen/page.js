@@ -1,13 +1,60 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+
+function Notificacion({ notificacion }) {
+  if (!notificacion) return null
+  const estilos = {
+    success: 'bg-green-50 border-green-400 text-green-800',
+    error:   'bg-red-50 border-red-400 text-red-800',
+    warning: 'bg-yellow-50 border-yellow-400 text-yellow-800',
+  }
+  const iconos = { success: '✓', error: '✕', warning: '⚠' }
+  return (
+    <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg transition-all duration-300 ${estilos[notificacion.tipo]}`}>
+      <span className="text-lg font-bold">{iconos[notificacion.tipo]}</span>
+      <p className="text-sm font-medium">{notificacion.mensaje}</p>
+    </div>
+  )
+}
+
+function ModalConfirmar({ config, onConfirmar, onCancelar }) {
+  if (!config) return null
+  const estilos = {
+    danger:  { btn: 'bg-red-600 hover:bg-red-700',    icono: '⚠', titulo: 'text-red-700' },
+    success: { btn: 'bg-green-600 hover:bg-green-700', icono: '✓', titulo: 'text-green-700' },
+  }
+  const estilo = estilos[config.tipo] || estilos.danger
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{estilo.icono}</span>
+          <h3 className={`text-lg font-bold ${estilo.titulo}`}>{config.titulo}</h3>
+        </div>
+        <p className="text-sm text-gray-600">{config.mensaje}</p>
+        <div className="flex gap-3 pt-2">
+          <button onClick={onCancelar}
+            className="flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+            Cancelar
+          </button>
+          <button onClick={onConfirmar}
+            className={`flex-1 text-white py-2 rounded-lg transition text-sm font-semibold ${estilo.btn}`}>
+            {config.btnConfirmar}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function ModalEditar({ visita, onClose, onGuardar }) {
   const [form, setForm] = useState({
     fecha_visita:  visita.fecha_visita?.split('T')[0] || '',
-    hora_visita:   visita.hora_visita || '',
+    hora_visita:   visita.hora_visita && visita.hora_visita !== '00:00:00' ? visita.hora_visita : '',
     actividad:     visita.actividad || '',
     observaciones: visita.observaciones || '',
   })
@@ -30,7 +77,6 @@ function ModalEditar({ visita, onClose, onGuardar }) {
           <button onClick={onClose}
             className="text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">✕</button>
         </div>
-
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Propietario</label>
@@ -56,9 +102,14 @@ function ModalEditar({ visita, onClose, onGuardar }) {
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Actividad</label>
-            <input type="text" name="actividad" value={form.actividad}
-              onChange={handleChange} placeholder="Actividad a realizar"
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+            <select name="actividad" value={form.actividad} onChange={handleChange}
+              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm">
+              <option value="">Seleccione actividad</option>
+              <option value="Inspección">Visita jornada marcación</option>
+              <option value="Revisión">Visita talonario terreno</option>
+              <option value="Mantenimiento">Visita regular</option>
+              <option value="Capacitación">Capacitación</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Observaciones</label>
@@ -67,7 +118,6 @@ function ModalEditar({ visita, onClose, onGuardar }) {
               className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
           </div>
         </div>
-
         <div className="flex gap-3 p-6 border-t">
           <button onClick={onClose}
             className="flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
@@ -83,18 +133,36 @@ function ModalEditar({ visita, onClose, onGuardar }) {
   )
 }
 
+// helper para limpiar hora
+function formatHora(hora) {
+  if (!hora || hora === '00:00:00') return '—'
+  return hora
+}
+
 export default function VisitasPendientes() {
-  const [visitas, setVisitas]           = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState('')
-  const [visitaEditar, setVisitaEditar] = useState(null)
+  const router = useRouter()
+  const [visitas, setVisitas]               = useState([])
+  const [loading, setLoading]               = useState(true)
+  const [error, setError]                   = useState('')
+  const [visitaEditar, setVisitaEditar]     = useState(null)
+  const [notificacion, setNotificacion]     = useState(null)
+  const [modalConfirmar, setModalConfirmar] = useState(null)
   const [filterExtensionista, setFilterExtensionista] = useState('')
   const [filterPropietario, setFilterPropietario]     = useState('')
   const [filterFecha, setFilterFecha]                 = useState('')
 
   useEffect(() => {
-    let activo = true
+    if (!notificacion) return
+    const t = setTimeout(() => setNotificacion(null), 3000)
+    return () => clearTimeout(t)
+  }, [notificacion])
 
+  function mostrarNotificacion(mensaje, tipo = 'success') {
+    setNotificacion({ mensaje, tipo })
+  }
+
+  useEffect(() => {
+    let activo = true
     async function cargar() {
       setLoading(true)
       setError('')
@@ -109,7 +177,6 @@ export default function VisitasPendientes() {
         if (activo) setLoading(false)
       }
     }
-
     cargar()
     return () => { activo = false }
   }, [])
@@ -117,8 +184,8 @@ export default function VisitasPendientes() {
   const visitasFiltradas = useMemo(() => {
     return visitas.filter(v => {
       return (
-        v.extensionista_nombre.toLowerCase().includes(filterExtensionista.toLowerCase()) &&
-        v.propietario_nombre.toLowerCase().includes(filterPropietario.toLowerCase()) &&
+        (v.extensionista_nombre || '').toLowerCase().includes(filterExtensionista.toLowerCase()) &&
+        (v.propietario_nombre || '').toLowerCase().includes(filterPropietario.toLowerCase()) &&
         (filterFecha === '' || new Date(v.fecha_visita).toLocaleDateString() === new Date(filterFecha).toLocaleDateString())
       )
     })
@@ -133,70 +200,87 @@ export default function VisitasPendientes() {
       })
       if (!res.ok) throw new Error('Error al modificar la visita')
       setVisitas(prev => prev.map(v => v.id === datos.id ? { ...v, ...datos } : v))
-      alert('Visita modificada correctamente')
+      mostrarNotificacion('Visita modificada correctamente', 'success')
     } catch (error) {
-      alert('Error: ' + error.message)
+      mostrarNotificacion('Error: ' + error.message, 'error')
     }
   }
 
-  async function handleCancelar(id) {
-    if (!confirm('¿Estás seguro de que quieres cancelar esta visita?')) return
-    try {
-      const res = await fetch('/api/visPendientes', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      })
-      if (!res.ok) throw new Error('Error al cancelar la visita')
-      setVisitas(prev => prev.filter(v => v.id !== id))
-      alert('Visita cancelada correctamente')
-    } catch (error) {
-      alert('Error: ' + error.message)
-    }
+  function confirmarCancelar(id) {
+    setModalConfirmar({
+      titulo:       '¿Cancelar visita?',
+      mensaje:      'Esta acción marcará la visita como cancelada. ¿Estás seguro?',
+      btnConfirmar: 'Sí, cancelar',
+      tipo:         'danger',
+      accion:       async () => {
+        try {
+          const res = await fetch('/api/visPendientes', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+          })
+          if (!res.ok) throw new Error('Error al cancelar la visita')
+          setVisitas(prev => prev.filter(v => v.id !== id))
+          mostrarNotificacion('Visita cancelada correctamente', 'warning')
+        } catch (error) {
+          mostrarNotificacion('Error: ' + error.message, 'error')
+        }
+      }
+    })
   }
 
-  async function handleCompletar(id) {
-    if (!confirm('¿Quieres marcar esta visita como completada?')) return
-    try {
-      const res = await fetch('/api/updVisitas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      })
-      if (!res.ok) throw new Error('Error al actualizar la visita')
-      setVisitas(prev => prev.filter(v => v.id !== id))
-      alert('Visita marcada como completada')
-    } catch (error) {
-      alert('Error: ' + error.message)
-    }
+  function confirmarCompletar(id) {
+    setModalConfirmar({
+      titulo:       '¿Marcar como completada?',
+      mensaje:      'Se registrará esta visita como completada y desaparecerá de la lista.',
+      btnConfirmar: 'Sí, completar',
+      tipo:         'success',
+      accion:       async () => {
+        try {
+          const res = await fetch('/api/updVisitas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+          })
+          if (!res.ok) throw new Error('Error al actualizar la visita')
+          setVisitas(prev => prev.filter(v => v.id !== id))
+          mostrarNotificacion('Visita marcada como completada', 'success')
+        } catch (error) {
+          mostrarNotificacion('Error: ' + error.message, 'error')
+        }
+      }
+    })
+  }
+
+  async function ejecutarConfirmacion() {
+    const accion = modalConfirmar?.accion
+    setModalConfirmar(null)
+    if (accion) await accion()
   }
 
   const exportarPDF = () => {
-  const doc = new jsPDF()
-  doc.setFontSize(18)
-  doc.text('Listado de Visitas Pendientes', 14, 22)
-
-  const headers = [['Extensionista', 'Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad']]
-  const data = visitasFiltradas.map(v => [
-    v.extensionista_nombre,
-    v.propietario_nombre,
-    new Date(v.fecha_visita).toLocaleDateString('es-CL'),
-    v.hora_visita || '—',
-    v.actividad || '—',
-    v.comunidad_indigena ? (v.comunidad_nombre || 'Indígena') : 'No'
-  ])
-
-  autoTable(doc, {
-    startY: 30,
-    head: headers,
-    body: data,
-    styles: { fontSize: 10 },
-    headStyles: { fillColor: [16, 185, 129] },
-    theme: 'striped',
-  })
-
-  doc.save('visitas_pendientes.pdf')
-}
+    const doc = new jsPDF()
+    doc.setFontSize(18)
+    doc.text('Listado de Visitas Pendientes', 14, 22)
+    const headers = [['Extensionista', 'Propietario', 'Fecha', 'Hora', 'Actividad', 'Comunidad']]
+    const data = visitasFiltradas.map(v => [
+      v.extensionista_nombre,
+      v.propietario_nombre,
+      new Date(v.fecha_visita).toLocaleDateString('es-CL'),
+      formatHora(v.hora_visita),
+      v.actividad || '—',
+      v.comunidad_indigena ? (v.comunidad_nombre || 'Indígena') : 'No'
+    ])
+    autoTable(doc, {
+      startY: 30,
+      head: headers,
+      body: data,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [16, 185, 129] },
+      theme: 'striped',
+    })
+    doc.save('visitas_pendientes.pdf')
+  }
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
@@ -212,17 +296,28 @@ export default function VisitasPendientes() {
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      {/* Header */}
+
+      <Notificacion notificacion={notificacion} />
+      <ModalConfirmar
+        config={modalConfirmar}
+        onConfirmar={ejecutarConfirmacion}
+        onCancelar={() => setModalConfirmar(null)}
+      />
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-green-800">Visitas Pendientes</h1>
+        <div>
+          <button onClick={() => router.push('/admin')}
+            className="text-green-700 hover:text-green-900 text-sm font-medium mb-2 flex items-center gap-1">
+            ← Volver al Dashboard
+          </button>
+          <h1 className="text-3xl font-bold text-green-800">Visitas Pendientes</h1>
+        </div>
         <button onClick={exportarPDF}
           className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg font-semibold transition">
           Exportar a PDF
         </button>
-        
       </div>
 
-      {/* Filtros */}
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <input type="text" placeholder="Filtrar por Extensionista"
           value={filterExtensionista} onChange={e => setFilterExtensionista(e.target.value)}
@@ -235,12 +330,10 @@ export default function VisitasPendientes() {
           className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
       </div>
 
-      {/* Contador */}
       <p className="text-sm text-gray-500 mb-4">
         Mostrando <span className="font-semibold text-green-700">{visitasFiltradas.length}</span> visitas pendientes
       </p>
 
-      {/* Tabla */}
       <div className="overflow-x-auto border border-green-200 rounded-lg shadow-md">
         <table className="min-w-full table-auto border-collapse">
           <thead className="bg-green-50">
@@ -268,7 +361,7 @@ export default function VisitasPendientes() {
                   <td className="border border-green-200 px-4 py-3 text-sm whitespace-nowrap">
                     {new Date(visita.fecha_visita).toLocaleDateString('es-CL')}
                   </td>
-                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.hora_visita || '—'}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm">{formatHora(visita.hora_visita)}</td>
                   <td className="border border-green-200 px-4 py-3 text-sm">{visita.actividad || '—'}</td>
                   <td className="border border-green-200 px-4 py-3 text-sm">
                     {visita.comunidad_indigena ? visita.comunidad_nombre || 'Indígena' : 'No'}
@@ -279,11 +372,11 @@ export default function VisitasPendientes() {
                         className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs font-medium transition">
                         Modificar
                       </button>
-                      <button onClick={() => handleCancelar(visita.id)}
+                      <button onClick={() => confirmarCancelar(visita.id)}
                         className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs font-medium transition">
                         Cancelar
                       </button>
-                      <button onClick={() => handleCompletar(visita.id)}
+                      <button onClick={() => confirmarCompletar(visita.id)}
                         className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 text-xs font-medium transition">
                         Completada
                       </button>
@@ -296,7 +389,6 @@ export default function VisitasPendientes() {
         </table>
       </div>
 
-      {/* Modal editar */}
       {visitaEditar && (
         <ModalEditar
           visita={visitaEditar}
