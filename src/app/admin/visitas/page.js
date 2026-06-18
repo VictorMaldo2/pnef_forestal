@@ -80,6 +80,8 @@ function ModalEditar({ visita, onClose, onGuardar }) {
     onClose()
   }
 
+  const inputClass = "border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm text-gray-800"
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -92,30 +94,27 @@ function ModalEditar({ visita, onClose, onGuardar }) {
         <div className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Propietario</label>
-            <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded break-words">{visita.propietario_nombre}</p>
+            <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded break-words">{visita.propietario_nombre}</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Extensionista</label>
-            <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded break-words">{visita.extensionista_nombre}</p>
+            <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded break-words">{visita.extensionista_nombre}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha</label>
               <input type="date" name="fecha_visita" value={form.fecha_visita}
-                onChange={handleChange}
-                className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+                onChange={handleChange} className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Hora</label>
               <input type="time" name="hora_visita" value={form.hora_visita}
-                onChange={handleChange}
-                className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+                onChange={handleChange} className={inputClass} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
-            <select name="estado" value={form.estado} onChange={handleChange}
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm">
+            <select name="estado" value={form.estado} onChange={handleChange} className={inputClass}>
               <option value="pendiente">Pendiente</option>
               <option value="completada">Completada</option>
               <option value="cancelada">Cancelada</option>
@@ -123,8 +122,7 @@ function ModalEditar({ visita, onClose, onGuardar }) {
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Actividad</label>
-            <select name="actividad" value={form.actividad} onChange={handleChange}
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm">
+            <select name="actividad" value={form.actividad} onChange={handleChange} className={inputClass}>
               <option value="">Seleccione actividad</option>
               <option value="Inspección">Visita jornada marcación</option>
               <option value="Revisión">Visita talonario terreno</option>
@@ -136,7 +134,7 @@ function ModalEditar({ visita, onClose, onGuardar }) {
             <label className="block text-sm font-semibold text-gray-700 mb-1">Observaciones</label>
             <textarea name="observaciones" value={form.observaciones}
               onChange={handleChange} rows={3} placeholder="Observaciones"
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+              className={`${inputClass} placeholder-gray-400`} />
           </div>
         </div>
 
@@ -285,6 +283,8 @@ export default function VisitasTotales() {
     </div>
   )
 
+  const filtroClass = "w-full p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 placeholder-gray-400"
+
   return (
     <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 overflow-x-hidden">
 
@@ -295,7 +295,6 @@ export default function VisitasTotales() {
         onCancelar={() => setModalConfirmar(null)}
       />
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3 w-full">
         <h1 className="text-2xl sm:text-3xl font-bold text-green-800">Visitas Totales</h1>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -310,26 +309,23 @@ export default function VisitasTotales() {
         </div>
       </div>
 
-      {/* Filtros */}
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
         <input type="text" placeholder="Filtrar por Extensionista"
           value={filtroExtensionista} onChange={e => setFiltroExtensionista(e.target.value)}
-          className="w-full p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className={filtroClass} />
         <input type="text" placeholder="Filtrar por Propietario"
           value={filtroPropietario} onChange={e => setFiltroPropietario(e.target.value)}
-          className="w-full p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className={filtroClass} />
         <input type="date" value={filtroFecha}
           onChange={e => setFiltroFecha(e.target.value)}
-          className="w-full p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className={filtroClass} />
       </div>
 
-      {/* Contador */}
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-gray-600 mb-4">
         Mostrando <span className="font-semibold text-green-700">{visitasFiltradas.length}</span> de{' '}
-        <span className="font-semibold">{visitas.length}</span> visitas
+        <span className="font-semibold text-gray-800">{visitas.length}</span> visitas
       </p>
 
-      {/* Tabla */}
       <div className="w-full max-w-full overflow-x-auto border border-green-200 rounded-lg shadow-md">
         <table className="min-w-[640px] w-full table-auto border-collapse">
           <thead className="bg-green-50">
@@ -346,25 +342,25 @@ export default function VisitasTotales() {
           <tbody>
             {visitasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-gray-500 font-semibold">
+                <td colSpan={7} className="py-8 text-center text-gray-600 font-semibold">
                   No hay visitas para mostrar.
                 </td>
               </tr>
             ) : (
               visitasFiltradas.map(visita => (
                 <tr key={visita.id} className="hover:bg-green-50 transition-colors">
-                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm whitespace-nowrap">{visita.extensionista_nombre}</td>
-                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm whitespace-nowrap">{visita.propietario_nombre}</td>
-                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm whitespace-nowrap">
+                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{visita.extensionista_nombre}</td>
+                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{visita.propietario_nombre}</td>
+                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm text-gray-800 whitespace-nowrap">
                     {new Date(visita.fecha_visita).toLocaleDateString('es-CL')}
                   </td>
-                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm whitespace-nowrap">{formatHora(visita.hora_visita)}</td>
+                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{formatHora(visita.hora_visita)}</td>
                   <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm">
                     <span className={`px-2 py-1 rounded text-xs font-semibold capitalize whitespace-nowrap ${ESTADO_COLOR[visita.estado] || 'bg-gray-100 text-gray-600'}`}>
                       {visita.estado}
                     </span>
                   </td>
-                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm whitespace-nowrap">
+                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm text-gray-800 whitespace-nowrap">
                     {visita.comunidad_indigena ? visita.comunidad_nombre || 'Indígena' : 'No'}
                   </td>
                   <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm">
@@ -386,7 +382,6 @@ export default function VisitasTotales() {
         </table>
       </div>
 
-      {/* Modal editar */}
       {visitaEditar && (
         <ModalEditar
           visita={visitaEditar}

@@ -176,6 +176,8 @@ export default function PropietariosAdminPage() {
     }
   }
 
+  const inputClass = "w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none text-gray-800 placeholder-gray-400"
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <p className="text-green-700 text-lg text-center">Cargando propietarios...</p>
@@ -203,7 +205,7 @@ export default function PropietariosAdminPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <button onClick={() => router.push('/extensionista/propietarios/agregar')}
             className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 font-medium text-sm sm:text-base whitespace-nowrap">
-             Agregar propietario
+            + Agregar propietario
           </button>
           <button onClick={() => router.back()}
             className="bg-gray-500 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-600 text-sm sm:text-base whitespace-nowrap">
@@ -214,7 +216,7 @@ export default function PropietariosAdminPage() {
 
       <input type="text" placeholder="Buscar por nombre o RUT..."
         value={busqueda} onChange={e => setBusqueda(e.target.value)}
-        className="w-full p-3 border border-green-200 rounded-lg shadow-sm focus:ring-2 focus:ring-green-400 focus:border-transparent text-sm mb-6" />
+        className="w-full p-3 border border-green-200 rounded-lg shadow-sm focus:ring-2 focus:ring-green-400 focus:border-transparent text-sm text-gray-800 placeholder-gray-400 mb-6" />
 
       {propietariosFiltrados.length === 0 ? (
         <p className="text-center text-gray-500">No se encontraron propietarios.</p>
@@ -241,19 +243,19 @@ export default function PropietariosAdminPage() {
               <tbody>
                 {propietariosFiltrados.map(p => (
                   <tr key={p.id} className="hover:bg-green-50">
-                    <td className="border-b border-green-50 p-3 sm:p-4 font-medium whitespace-nowrap">{p.nombre}</td>
-                    <td className="border-b border-green-50 p-3 sm:p-4 whitespace-nowrap">{p.rut}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 font-medium text-gray-800 whitespace-nowrap">{p.nombre}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 text-gray-800 whitespace-nowrap">{p.rut}</td>
                     <td className="border-b border-green-50 p-3 sm:p-4 hidden md:table-cell">
                       {p.comunidad_indigena
                         ? <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
                             {p.comunidad_nombre || 'Sí'}
                           </span>
-                        : <span className="text-gray-400 text-sm">No</span>
+                        : <span className="text-gray-600 text-sm">No</span>
                       }
                     </td>
-                    <td className="border-b border-green-50 p-3 sm:p-4 hidden sm:table-cell">{p.comuna || '—'}</td>
-                    <td className="border-b border-green-50 p-3 sm:p-4 hidden lg:table-cell">{p.telefono || '—'}</td>
-                    <td className="border-b border-green-50 p-3 sm:p-4 hidden lg:table-cell">{p.email || '—'}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 text-gray-800 hidden sm:table-cell">{p.comuna || '—'}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 text-gray-800 hidden lg:table-cell">{p.telefono || '—'}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 text-gray-800 hidden lg:table-cell">{p.email || '—'}</td>
                     <td className="border-b border-green-50 p-3 sm:p-4">
                       <div className="flex gap-2">
                         <button onClick={() => openEditModal(p)}
@@ -282,32 +284,27 @@ export default function PropietariosAdminPage() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Nombre</label>
                 <input type="text" value={editNombre} onChange={e => setEditNombre(e.target.value)}
-                  required placeholder="Nombre"
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  required placeholder="Nombre" className={inputClass} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">RUT</label>
                 <input type="text" value={editRut} onChange={e => setEditRut(e.target.value)}
-                  required placeholder="RUT"
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  required placeholder="RUT" className={inputClass} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Comuna</label>
                 <input type="text" value={editComuna} onChange={e => setEditComuna(e.target.value)}
-                  placeholder="Comuna"
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  placeholder="Comuna" className={inputClass} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Teléfono</label>
                 <input type="text" value={editTelefono} onChange={e => setEditTelefono(e.target.value)}
-                  placeholder="Teléfono"
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  placeholder="Teléfono" className={inputClass} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
                 <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)}
-                  placeholder="correo@ejemplo.com"
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  placeholder="correo@ejemplo.com" className={inputClass} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Comunidad indígena</label>
@@ -316,7 +313,7 @@ export default function PropietariosAdminPage() {
                     setEditComunidad(e.target.value === 'true')
                     if (e.target.value === 'false') setEditComunidadNombre('')
                   }}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none">
+                  className={inputClass}>
                   <option value="false">No pertenece a comunidad</option>
                   <option value="true">Pertenece a comunidad</option>
                 </select>
@@ -327,12 +324,12 @@ export default function PropietariosAdminPage() {
                   <input type="text" value={editComunidadNombre}
                     onChange={e => setEditComunidadNombre(e.target.value)}
                     placeholder="Ej: Mapuche, Aymara..."
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                    className={inputClass} />
                 </div>
               )}
               <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setEditPropietario(null)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm order-2 sm:order-1">
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm text-gray-700 order-2 sm:order-1">
                   Cancelar
                 </button>
                 <button type="submit" disabled={processing}

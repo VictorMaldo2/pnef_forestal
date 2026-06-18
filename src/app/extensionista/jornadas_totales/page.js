@@ -155,7 +155,7 @@ function Seccion({ titulo, children }) {
 function Fila({ label, valor }) {
   return (
     <div className="flex justify-between text-sm py-1 border-b border-gray-50">
-      <span className="text-gray-500 w-1/2">{label}</span>
+      <span className="text-gray-600 w-1/2">{label}</span>
       <span className="font-medium text-gray-800 w-1/2 text-right">{valor ?? '—'}</span>
     </div>
   )
@@ -165,7 +165,7 @@ function Texto({ label, valor }) {
   if (!valor) return null
   return (
     <div className="text-sm py-1">
-      {label && <p className="text-gray-500 mb-1">{label}</p>}
+      {label && <p className="text-gray-600 mb-1">{label}</p>}
       <p className="text-gray-800 bg-gray-50 rounded p-2">{valor}</p>
     </div>
   )
@@ -177,11 +177,11 @@ function ListaArray({ items }) {
     : typeof items === 'string'
       ? items.replace(/[{}"]/g, '').split(',').filter(Boolean)
       : []
-  if (lista.length === 0) return <p className="text-sm text-gray-400">Sin actividades</p>
+  if (lista.length === 0) return <p className="text-sm text-gray-500">Sin actividades</p>
   return (
     <ul className="space-y-1">
       {lista.map((item, i) => (
-        <li key={i} className="text-sm flex items-center gap-2">
+        <li key={i} className="text-sm text-gray-800 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0" />
           {item.trim()}
         </li>
@@ -254,6 +254,8 @@ export default function JornadasTotalesPage() {
     setFiltroFechaHasta('')
   }
 
+  const filtroClass = "border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 placeholder-gray-400"
+
   const columnas = esAdmin
     ? ['Tipo', 'Fecha', 'N° / ID', 'Propietario', 'RUT', 'Comuna', 'Extensionista', 'Actividades', 'Sup. Total (Ha)', 'Ver']
     : ['Tipo', 'Fecha', 'N° / ID', 'Propietario', 'RUT', 'Comuna', 'Actividades', 'Sup. Total (Ha)', 'Ver']
@@ -269,56 +271,56 @@ export default function JornadasTotalesPage() {
       </button>
 
       <h1 className="text-3xl font-bold text-green-800">Jornadas Totales</h1>
-      <p className="text-gray-500 text-sm">Talonarios de terreno y jornadas de marcación registradas</p>
+      <p className="text-gray-600 text-sm">Talonarios de terreno y jornadas de marcación registradas</p>
 
       <div className="bg-gray-50 border rounded p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
             placeholder="Buscar por propietario, RUT, comuna..."
-            className="border p-3 rounded w-full col-span-1 md:col-span-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+            className={`${filtroClass} col-span-1 md:col-span-2`} />
           <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
-            className="border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500">
+            className={filtroClass}>
             <option value="todos">Todos los tipos</option>
             <option value="talonario">Talonario de Terreno</option>
             <option value="marcacion">Jornada de Marcación</option>
           </select>
           <button onClick={limpiarFiltros}
-            className="border p-3 rounded w-full text-gray-600 hover:bg-gray-100 transition">
+            className="border p-3 rounded w-full text-gray-700 hover:bg-gray-100 transition font-medium">
             Limpiar filtros
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold mb-1 text-gray-600">Fecha desde</label>
+            <label className="block text-sm font-semibold mb-1 text-gray-700">Fecha desde</label>
             <input type="date" value={filtroFechaDesde}
               onChange={e => setFiltroFechaDesde(e.target.value)}
-              className="border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500" />
+              className={filtroClass} />
           </div>
           <div>
-            <label className="block text-sm font-semibold mb-1 text-gray-600">Fecha hasta</label>
+            <label className="block text-sm font-semibold mb-1 text-gray-700">Fecha hasta</label>
             <input type="date" value={filtroFechaHasta}
               onChange={e => setFiltroFechaHasta(e.target.value)}
-              className="border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500" />
+              className={filtroClass} />
           </div>
         </div>
       </div>
 
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-gray-600">
         Mostrando <span className="font-semibold text-green-700">{jornadasFiltradas.length}</span> de{' '}
-        <span className="font-semibold">{jornadas.length}</span> registros
+        <span className="font-semibold text-gray-800">{jornadas.length}</span> registros
       </p>
 
       {loading ? (
-        <div className="text-center py-20 text-gray-400">Cargando jornadas...</div>
+        <div className="text-center py-20 text-gray-500">Cargando jornadas...</div>
       ) : jornadasFiltradas.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">No se encontraron registros.</div>
+        <div className="text-center py-20 text-gray-500">No se encontraron registros.</div>
       ) : (
         <div className="overflow-x-auto rounded border">
           <table className="min-w-full text-sm">
             <thead className="bg-green-700 text-white">
               <tr>
                 {columnas.map(h => (
-                  <th key={h} className="px-4 py-3 text-left">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -330,23 +332,23 @@ export default function JornadasTotalesPage() {
                       {TIPO_LABEL[j.tipo].label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatFecha(j.fecha)}</td>
-                  <td className="px-4 py-3">{j.nro_talonario || `#${j.id}`}</td>
-                  <td className="px-4 py-3 font-medium">{j.propietario_nombre || '—'}</td>
-                  <td className="px-4 py-3">{j.propietario_rut || '—'}</td>
-                  <td className="px-4 py-3">{j.propietario_comuna || '—'}</td>
+                  <td className="px-4 py-3 text-gray-800 whitespace-nowrap">{formatFecha(j.fecha)}</td>
+                  <td className="px-4 py-3 text-gray-800">{j.nro_talonario || `#${j.id}`}</td>
+                  <td className="px-4 py-3 font-medium text-gray-800">{j.propietario_nombre || '—'}</td>
+                  <td className="px-4 py-3 text-gray-800">{j.propietario_rut || '—'}</td>
+                  <td className="px-4 py-3 text-gray-800">{j.propietario_comuna || '—'}</td>
                   {esAdmin && (
-                    <td className="px-4 py-3">{j.extensionista_nombre || '—'}</td>
+                    <td className="px-4 py-3 text-gray-800">{j.extensionista_nombre || '—'}</td>
                   )}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-gray-800">
                     {Array.isArray(j.actividades) && j.actividades.length > 0
                       ? j.actividades.slice(0, 2).join(', ') + (j.actividades.length > 2 ? ` +${j.actividades.length - 2}` : '')
                       : '—'}
                   </td>
-                  <td className="px-4 py-3">{j.superficie_total_predio ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-800">{j.superficie_total_predio ?? '—'}</td>
                   <td className="px-4 py-3">
                     <button onClick={() => setJornadaModal(j)}
-                      className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition">
+                      className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition whitespace-nowrap">
                       Ver
                     </button>
                   </td>

@@ -69,6 +69,8 @@ function ModalEditar({ visita, onClose, onGuardar }) {
     onClose()
   }
 
+  const inputClass = "border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm text-gray-800"
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
@@ -80,30 +82,27 @@ function ModalEditar({ visita, onClose, onGuardar }) {
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Propietario</label>
-            <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">{visita.propietario_nombre}</p>
+            <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{visita.propietario_nombre}</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Extensionista</label>
-            <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">{visita.extensionista_nombre}</p>
+            <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{visita.extensionista_nombre}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha</label>
               <input type="date" name="fecha_visita" value={form.fecha_visita}
-                onChange={handleChange}
-                className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+                onChange={handleChange} className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Hora</label>
               <input type="time" name="hora_visita" value={form.hora_visita}
-                onChange={handleChange}
-                className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+                onChange={handleChange} className={inputClass} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Actividad</label>
-            <select name="actividad" value={form.actividad} onChange={handleChange}
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm">
+            <select name="actividad" value={form.actividad} onChange={handleChange} className={inputClass}>
               <option value="">Seleccione actividad</option>
               <option value="Inspección">Visita jornada marcación</option>
               <option value="Revisión">Visita talonario terreno</option>
@@ -115,7 +114,7 @@ function ModalEditar({ visita, onClose, onGuardar }) {
             <label className="block text-sm font-semibold text-gray-700 mb-1">Observaciones</label>
             <textarea name="observaciones" value={form.observaciones}
               onChange={handleChange} rows={3} placeholder="Observaciones"
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+              className={`${inputClass} placeholder-gray-400`} />
           </div>
         </div>
         <div className="flex gap-3 p-6 border-t">
@@ -133,7 +132,6 @@ function ModalEditar({ visita, onClose, onGuardar }) {
   )
 }
 
-// helper para limpiar hora
 function formatHora(hora) {
   if (!hora || hora === '00:00:00') return '—'
   return hora
@@ -294,6 +292,8 @@ export default function VisitasPendientes() {
     </div>
   )
 
+  const filtroClass = "p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 placeholder-gray-400"
+
   return (
     <div className="p-4 max-w-7xl mx-auto">
 
@@ -321,16 +321,16 @@ export default function VisitasPendientes() {
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <input type="text" placeholder="Filtrar por Extensionista"
           value={filterExtensionista} onChange={e => setFilterExtensionista(e.target.value)}
-          className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className={filtroClass} />
         <input type="text" placeholder="Filtrar por Propietario"
           value={filterPropietario} onChange={e => setFilterPropietario(e.target.value)}
-          className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className={filtroClass} />
         <input type="date" value={filterFecha}
           onChange={e => setFilterFecha(e.target.value)}
-          className="p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className={filtroClass} />
       </div>
 
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-gray-600 mb-4">
         Mostrando <span className="font-semibold text-green-700">{visitasFiltradas.length}</span> visitas pendientes
       </p>
 
@@ -349,21 +349,21 @@ export default function VisitasPendientes() {
           <tbody>
             {visitasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-gray-500 font-semibold">
+                <td colSpan={7} className="py-8 text-center text-gray-600 font-semibold">
                   No hay visitas pendientes.
                 </td>
               </tr>
             ) : (
               visitasFiltradas.map(visita => (
                 <tr key={visita.id} className="hover:bg-green-50 transition-colors">
-                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.extensionista_nombre}</td>
-                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.propietario_nombre}</td>
-                  <td className="border border-green-200 px-4 py-3 text-sm whitespace-nowrap">
+                  <td className="border border-green-200 px-4 py-3 text-sm text-gray-800">{visita.extensionista_nombre}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm text-gray-800">{visita.propietario_nombre}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm text-gray-800 whitespace-nowrap">
                     {new Date(visita.fecha_visita).toLocaleDateString('es-CL')}
                   </td>
-                  <td className="border border-green-200 px-4 py-3 text-sm">{formatHora(visita.hora_visita)}</td>
-                  <td className="border border-green-200 px-4 py-3 text-sm">{visita.actividad || '—'}</td>
-                  <td className="border border-green-200 px-4 py-3 text-sm">
+                  <td className="border border-green-200 px-4 py-3 text-sm text-gray-800">{formatHora(visita.hora_visita)}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm text-gray-800">{visita.actividad || '—'}</td>
+                  <td className="border border-green-200 px-4 py-3 text-sm text-gray-800">
                     {visita.comunidad_indigena ? visita.comunidad_nombre || 'Indígena' : 'No'}
                   </td>
                   <td className="border border-green-200 px-4 py-3 text-sm">

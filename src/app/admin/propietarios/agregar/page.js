@@ -39,9 +39,7 @@ export default function AgregarPropietario() {
     try {
       const res = await fetch('/api/propietarios', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       })
 
@@ -71,6 +69,8 @@ export default function AgregarPropietario() {
       setLoading(false)
     }
   }
+
+  const inputClass = "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-800 placeholder-gray-400"
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex flex-col items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
@@ -102,31 +102,25 @@ export default function AgregarPropietario() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">
-                RUT *
-              </label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">RUT *</label>
               <input
                 type="text"
                 name="rut"
                 value={form.rut}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                className={inputClass}
                 placeholder="12345678-9"
                 required
               />
             </div>
-
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">
-                Nombre Completo *
-              </label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Nombre Completo *</label>
               <input
-            
                 type="text"
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                className={inputClass}
                 placeholder="Juan Pérez"
                 required
               />
@@ -148,15 +142,13 @@ export default function AgregarPropietario() {
 
           {form.comunidad_indigena && (
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">
-                Nombre de la Comunidad
-              </label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Nombre de la Comunidad</label>
               <input
                 type="text"
                 name="comunidad_nombre"
                 value={form.comunidad_nombre}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                className={inputClass}
                 placeholder="Mapuche, Aymara, etc."
               />
             </div>
@@ -164,14 +156,12 @@ export default function AgregarPropietario() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">
-                Género
-              </label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Género</label>
               <select
                 name="genero"
                 value={form.genero}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                className={inputClass}
               >
                 <option value="">Seleccionar género</option>
                 <option value="Masculino">Masculino</option>
@@ -179,17 +169,14 @@ export default function AgregarPropietario() {
                 <option value="Otro">Otro</option>
               </select>
             </div>
-
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">
-                Comuna
-              </label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Comuna</label>
               <input
                 type="text"
                 name="comuna"
                 value={form.comuna}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                className={inputClass}
                 placeholder="Temuco, Calama, etc."
               />
             </div>
@@ -197,14 +184,12 @@ export default function AgregarPropietario() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">
-                Tipo de Propietario
-              </label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Tipo de Propietario</label>
               <select
                 name="tipo_propietario"
                 value={form.tipo_propietario}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                className={inputClass}
               >
                 <option value="">Seleccionar tipo</option>
                 <option value="Pequeño">Pequeño</option>
@@ -212,45 +197,38 @@ export default function AgregarPropietario() {
                 <option value="Grande">Grande</option>
               </select>
             </div>
-
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">
-                Teléfono
-              </label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Teléfono</label>
               <input
                 type="tel"
                 name="telefono"
                 value={form.telefono}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                className={inputClass}
                 placeholder="+56912345678"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">
-              Email
-            </label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Email</label>
             <input
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+              className={inputClass}
               placeholder="correo@ejemplo.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">
-              Dirección
-            </label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Dirección</label>
             <textarea
               name="direccion"
               value={form.direccion}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm resize-vertical"
+              className={`${inputClass} resize-vertical`}
               placeholder="Dirección completa"
               rows={3}
             />

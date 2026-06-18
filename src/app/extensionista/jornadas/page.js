@@ -22,6 +22,8 @@ const actividadesOpciones = [
   { value: 'actividades_otros', label: 'Otras' },
 ]
 
+const inputClass = "border p-3 rounded w-full text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+
 function BuscadorPropietario({ propietarios, value, onChange }) {
   const [busqueda, setBusqueda] = useState('')
   const [abierto, setAbierto]   = useState(false)
@@ -52,7 +54,7 @@ function BuscadorPropietario({ propietarios, value, onChange }) {
           onChange={e => { setBusqueda(e.target.value); setAbierto(true); onChange(null) }}
           onFocus={() => { setAbierto(true); setBusqueda('') }}
           placeholder="Buscar propietario por nombre o RUT..."
-          className="flex-1 p-3 text-sm outline-none" />
+          className="flex-1 p-3 text-sm text-gray-800 placeholder-gray-400 outline-none" />
         {value && (
           <button type="button" onClick={limpiar}
             className="px-3 text-gray-400 hover:text-gray-600 text-lg">✕</button>
@@ -61,12 +63,12 @@ function BuscadorPropietario({ propietarios, value, onChange }) {
       {abierto && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded shadow-xl max-h-60 overflow-y-auto">
           {filtrados.length === 0
-            ? <p className="px-4 py-3 text-sm text-gray-400">No se encontraron propietarios</p>
+            ? <p className="px-4 py-3 text-sm text-gray-500">No se encontraron propietarios</p>
             : filtrados.map(p => (
                 <button key={p.id} type="button" onClick={() => seleccionar(p)}
-                  className="w-full text-left px-4 py-3 text-sm hover:bg-green-50 hover:text-green-700 transition-colors border-b border-gray-50 last:border-0">
+                  className="w-full text-left px-4 py-3 text-sm text-gray-800 hover:bg-green-50 hover:text-green-700 transition-colors border-b border-gray-50 last:border-0">
                   <span className="font-medium">{p.nombre}</span>
-                  <span className="text-gray-400 ml-2">{p.rut}</span>
+                  <span className="text-gray-500 ml-2">{p.rut}</span>
                 </button>
               ))
           }
@@ -237,20 +239,20 @@ export default function JornadaMarcacionForm() {
         ← Volver al Dashboard
       </button>
 
-      <h1 className="text-3xl font-bold mb-6 text-center">Registrar Jornada de Marcación</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Registrar Jornada de Marcación</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
         {/* Propietario */}
         <div>
-          <label className="block font-semibold mb-2">Propietario</label>
+          <label className="block font-semibold mb-2 text-gray-700">Propietario</label>
           <BuscadorPropietario
             propietarios={propietarios}
             value={form.propietario_id}
             onChange={handlePropietarioChange}
           />
           {form.propietario_id && (
-            <div className="mt-2 text-sm text-gray-600 space-y-0.5">
+            <div className="mt-2 text-sm text-gray-700 space-y-0.5">
               <p>RUT: {form.rut}</p>
               <p>Comunidad indígena: {form.comunidad_nombre || '—'}</p>
               <p>Tipo: {form.tipo_propietario || '—'}</p>
@@ -268,43 +270,41 @@ export default function JornadaMarcacionForm() {
         {/* Datos básicos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Fecha de la Jornada *</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de la Jornada *</label>
             <input name="fecha_jornada" type="date" value={form.fecha_jornada}
-              onChange={handleChange} className="border p-3 rounded w-full" required />
+              onChange={handleChange} className={inputClass} required />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">N° de Resolución Plan Manejo</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">N° de Resolución Plan Manejo</label>
             <input name="nro_resolucion" placeholder="N° de Resolución"
-              value={form.nro_resolucion} onChange={handleChange}
-              className="border p-3 rounded w-full" />
+              value={form.nro_resolucion} onChange={handleChange} className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Fecha de la Resolución</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de la Resolución</label>
             <input name="fecha_resolucion" type="date" value={form.fecha_resolucion}
-              onChange={handleChange} className="border p-3 rounded w-full" />
+              onChange={handleChange} className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">ROL</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">ROL</label>
             <input name="rol" placeholder="ROL" value={form.rol}
-              onChange={handleChange} className="border p-3 rounded w-full" />
+              onChange={handleChange} className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Punto Referencia HUSO</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Punto Referencia HUSO</label>
             <input name="punto_referencia_huso" placeholder="HUSO"
-              value={form.punto_referencia_huso} onChange={handleChange}
-              className="border p-3 rounded w-full" />
+              value={form.punto_referencia_huso} onChange={handleChange} className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Punto Referencia ESTE (m)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Punto Referencia ESTE (m)</label>
             <input name="punto_referencia_este" type="number" step="0.01"
               placeholder="ESTE" value={form.punto_referencia_este}
-              onChange={handleChange} className="border p-3 rounded w-full" />
+              onChange={handleChange} className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Punto Referencia NORTE (m)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Punto Referencia NORTE (m)</label>
             <input name="punto_referencia_norte" type="number" step="0.01"
               placeholder="NORTE" value={form.punto_referencia_norte}
-              onChange={handleChange} className="border p-3 rounded w-full" />
+              onChange={handleChange} className={inputClass} />
           </div>
         </div>
 
@@ -312,30 +312,30 @@ export default function JornadaMarcacionForm() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <input name="superficie_total_predio" type="number" step="0.01"
             placeholder="Superficie total (Ha)" value={form.superficie_total_predio}
-            onChange={handleChange} className="border p-3 rounded w-full" />
+            onChange={handleChange} className={inputClass} />
           <input name="superficie_bajo_regimen" type="number" step="0.01"
-            placeholder="Superficie bajo régimen (Ha)" value={form.superficie_bajo_regimen}
-            onChange={handleChange} className="border p-3 rounded w-full" />
+            placeholder="Sup. bajo régimen (Ha)" value={form.superficie_bajo_regimen}
+            onChange={handleChange} className={inputClass} />
           <input name="superficie_manejada" type="number" step="0.01"
-            placeholder="Superficie manejada (Ha)" value={form.superficie_manejada}
-            onChange={handleChange} className="border p-3 rounded w-full" />
+            placeholder="Sup. manejada (Ha)" value={form.superficie_manejada}
+            onChange={handleChange} className={inputClass} />
           <input name="superficie_bosque_nativo" type="number" step="0.01"
-            placeholder="Superficie bosque nativo (Ha)" value={form.superficie_bosque_nativo}
-            onChange={handleChange} className="border p-3 rounded w-full" />
+            placeholder="Sup. bosque nativo (Ha)" value={form.superficie_bosque_nativo}
+            onChange={handleChange} className={inputClass} />
           <input name="superficie_anual_planificada" type="number" step="0.01"
-            placeholder="Superficie anual planificada (Ha)" value={form.superficie_anual_planificada}
-            onChange={handleChange} className="border p-3 rounded w-full" />
+            placeholder="Sup. anual planificada (Ha)" value={form.superficie_anual_planificada}
+            onChange={handleChange} className={inputClass} />
           <input name="superficie_marcada" type="number" step="0.01"
-            placeholder="Superficie marcada (Ha)" value={form.superficie_marcada}
-            onChange={handleChange} className="border p-3 rounded w-full" />
+            placeholder="Sup. marcada (Ha)" value={form.superficie_marcada}
+            onChange={handleChange} className={inputClass} />
           <input name="superficie_marcada_km" type="number" step="0.01"
-            placeholder="Superficie marcada (Km)" value={form.superficie_marcada_km}
-            onChange={handleChange} className="border p-3 rounded w-full" />
+            placeholder="Sup. marcada (Km)" value={form.superficie_marcada_km}
+            onChange={handleChange} className={inputClass} />
         </div>
 
         {/* Actividades */}
         <fieldset className="border p-4 rounded">
-          <legend className="font-semibold mb-3">Actividades Realizadas</legend>
+          <legend className="font-semibold mb-3 text-gray-700">Actividades Realizadas</legend>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {actividadesOpciones.map(({ value, label }) => (
               <label key={value} className="flex items-center gap-2 cursor-pointer">
@@ -343,33 +343,33 @@ export default function JornadaMarcacionForm() {
                   checked={form.actividades.includes(value)}
                   onChange={handleActividadChange}
                   className="w-4 h-4 accent-green-600" />
-                <span className="text-sm">{label}</span>
+                <span className="text-sm text-gray-800">{label}</span>
               </label>
             ))}
           </div>
           {form.actividades.includes('actividades_otros') && (
             <input type="text" name="actividad_otro" value={form.actividad_otro}
               onChange={handleChange} placeholder="Especifique otra actividad"
-              className="border p-3 rounded w-full mt-3" />
+              className={`${inputClass} mt-3`} />
           )}
         </fieldset>
 
         {/* Textos */}
         <textarea name="observaciones" placeholder="Observaciones"
           value={form.observaciones} onChange={handleChange}
-          className="w-full h-24 border p-3 rounded" />
+          className={`${inputClass} h-24`} />
         <textarea name="prescripciones" placeholder="Prescripciones técnicas"
           value={form.prescripciones} onChange={handleChange}
-          className="w-full h-24 border p-3 rounded" />
+          className={`${inputClass} h-24`} />
         <textarea name="medidas_proteccion" placeholder="Medidas de protección"
           value={form.medidas_proteccion} onChange={handleChange}
-          className="w-full h-24 border p-3 rounded" />
+          className={`${inputClass} h-24`} />
         <textarea name="materiales_utilizados" placeholder="Materiales utilizados (separados por comas)"
           value={form.materiales_utilizados} onChange={handleChange}
-          className="w-full h-20 border p-3 rounded" />
+          className={`${inputClass} h-20`} />
 
         <button type="submit"
-          className="bg-green-600 text-white py-3 px-6 rounded hover:bg-green-700 transition w-full">
+          className="bg-green-600 text-white py-3 px-6 rounded hover:bg-green-700 transition w-full font-semibold">
           Enviar Jornada
         </button>
       </form>
