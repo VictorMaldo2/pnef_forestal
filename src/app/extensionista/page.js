@@ -46,7 +46,7 @@ export default function ExtensionistaDashboard() {
                 Dashboard Extensionista
               </h2>
               <p className="text-green-600 text-sm sm:text-base lg:text-lg mt-1">
-                Gestión diaria de campo PNEF Forestal
+                Gestión diaria de campo PNEF
               </p>
             </div>
           </div>

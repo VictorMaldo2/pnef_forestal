@@ -7,7 +7,7 @@ export default function AdminLayout({ children }) {
       
 
       {/* Contenido principal */}
-      <main className="flex-1 p-8 bg-white">{children}</main>
+      <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-8 bg-white">{children}</main>
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 const TIPO_LABEL = {
   talonario: { label: 'Talonario de Terreno', color: 'bg-blue-100 text-blue-700' },
@@ -10,9 +11,14 @@ const TIPO_LABEL = {
 
 function Notificacion({ notificacion }) {
   if (!notificacion) return null
+  const estilos = {
+    success: 'bg-green-50 border-green-400 text-green-800',
+    error:   'bg-red-50 border-red-400 text-red-800',
+  }
+  const iconos = { success: '✓', error: '✕' }
   return (
-    <div className="fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg bg-red-50 border-red-400 text-red-800">
-      <span className="text-lg font-bold">✕</span>
+    <div className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-[100] flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl border shadow-lg transition-all duration-300 max-w-[calc(100vw-2rem)] ${estilos[notificacion.tipo]}`}>
+      <span className="text-lg font-bold">{iconos[notificacion.tipo]}</span>
       <p className="text-sm font-medium">{notificacion.mensaje}</p>
     </div>
   )
@@ -23,45 +29,45 @@ function Modal({ jornada, onClose }) {
   const esTalonario = jornada.tipo === 'talonario'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
           <div>
             <span className={`px-2 py-1 rounded text-xs font-semibold ${TIPO_LABEL[jornada.tipo].color}`}>
               {TIPO_LABEL[jornada.tipo].label}
             </span>
-            <h2 className="text-xl font-bold text-green-800 mt-1">
+            <h2 className="text-lg sm:text-xl font-bold text-green-800 mt-1">
               {esTalonario ? `Talonario N° ${jornada.nro_talonario || jornada.id}` : `Jornada #${jornada.id}`}
             </h2>
           </div>
           <button onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">✕</button>
+            className="text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none shrink-0 ml-2">✕</button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           <Seccion titulo="Participantes">
-            <Fila label="Extensionista"     valor={jornada.extensionista_nombre} />
+            <Fila label="Extensionista" valor={jornada.extensionista_nombre} />
             <Fila label="RUT Extensionista" valor={jornada.extensionista_rut} />
-            <Fila label="Propietario"       valor={jornada.propietario_nombre} />
-            <Fila label="RUT Propietario"   valor={jornada.propietario_rut} />
-            <Fila label="Comuna"            valor={jornada.propietario_comuna} />
+            <Fila label="Propietario" valor={jornada.propietario_nombre} />
+            <Fila label="RUT Propietario" valor={jornada.propietario_rut} />
+            <Fila label="Comuna" valor={jornada.propietario_comuna} />
           </Seccion>
 
           {esTalonario ? (
             <>
               <Seccion titulo="Encabezado">
-                <Fila label="Fecha"          valor={formatFecha(jornada.fecha)} />
+                <Fila label="Fecha" valor={formatFecha(jornada.fecha)} />
                 <Fila label="Tipo de Recurso" valor={jornada.tipo_recurso?.replace('_', ' ')} />
-                <Fila label="N° Talonario"   valor={jornada.nro_talonario} />
+                <Fila label="N° Talonario" valor={jornada.nro_talonario} />
               </Seccion>
               <Seccion titulo="Punto de Referencia WGS84">
-                <Fila label="HUSO"     valor={jornada.punto_referencia_huso} />
+                <Fila label="HUSO" valor={jornada.punto_referencia_huso} />
                 <Fila label="ESTE (m)" valor={jornada.punto_referencia_este} />
                 <Fila label="NORTE (m)" valor={jornada.punto_referencia_norte} />
               </Seccion>
               <Seccion titulo="Persona Presente">
                 <Fila label="Nombre" valor={jornada.nombre_persona_presente} />
-                <Fila label="Rol"    valor={jornada.rol_persona_presente} />
+                <Fila label="Rol" valor={jornada.rol_persona_presente} />
               </Seccion>
               <Seccion titulo="Actividades Realizadas">
                 <ListaArray items={jornada.actividades} />
@@ -70,10 +76,10 @@ function Modal({ jornada, onClose }) {
                 <Texto valor={jornada.observaciones} />
               </Seccion>
               <Seccion titulo="Antecedentes del Predio y Avances">
-                <Fila label="Superficie total (Ha)"        valor={jornada.superficie_total_predio} />
-                <Fila label="Sup. anual planificada (Ha)"  valor={jornada.superficie_anual_planificada} />
-                <Fila label="Sup. bajo régimen (Ha)"       valor={jornada.superficie_bajo_regimen} />
-                <Fila label="Avance ejecución"             valor={jornada.superficie_avance_ejecucion} />
+                <Fila label="Superficie total (Ha)" valor={jornada.superficie_total_predio} />
+                <Fila label="Sup. anual planificada (Ha)" valor={jornada.superficie_anual_planificada} />
+                <Fila label="Sup. bajo régimen (Ha)" valor={jornada.superficie_bajo_regimen} />
+                <Fila label="Avance ejecución" valor={jornada.superficie_avance_ejecucion} />
               </Seccion>
               <Seccion titulo="II. Recomendaciones y Observaciones">
                 <Texto valor={jornada.recomendaciones_observaciones} />
@@ -82,12 +88,12 @@ function Modal({ jornada, onClose }) {
                 <Texto valor={jornada.medidas_prevencion_incendios} />
               </Seccion>
               <Seccion titulo="Productos del Predio">
-                <Fila label="Carbón (saco)"        valor={jornada.carbon_saco} />
-                <Fila label="Leña (m3)"            valor={jornada.lena_m3} />
-                <Fila label="Madera (Pulgada)"     valor={jornada.madera_pulgada} />
-                <Fila label="Durmientes"           valor={jornada.durmientes} />
-                <Fila label="Metros Rumas"         valor={jornada.metros_rumas} />
-                <Fila label="Hojas / Corteza"      valor={jornada.hojas_corteza} />
+                <Fila label="Carbón (saco)" valor={jornada.carbon_saco} />
+                <Fila label="Leña (m3)" valor={jornada.lena_m3} />
+                <Fila label="Madera (Pulgada)" valor={jornada.madera_pulgada} />
+                <Fila label="Durmientes" valor={jornada.durmientes} />
+                <Fila label="Metros Rumas" valor={jornada.metros_rumas} />
+                <Fila label="Hojas / Corteza" valor={jornada.hojas_corteza} />
                 <Fila label="Visitantes (sendero)" valor={jornada.visitantes_sendero} />
                 {jornada.productos_otro_1 && <Fila label={jornada.productos_otro_1} valor={jornada.productos_otro_1_valor} />}
                 {jornada.productos_otro_2 && <Fila label={jornada.productos_otro_2} valor={jornada.productos_otro_2_valor} />}
@@ -96,34 +102,34 @@ function Modal({ jornada, onClose }) {
           ) : (
             <>
               <Seccion titulo="Datos de la Jornada">
-                <Fila label="Fecha"          valor={formatFecha(jornada.fecha)} />
-                <Fila label="N° Resolución"  valor={jornada.nro_resolucion} />
+                <Fila label="Fecha" valor={formatFecha(jornada.fecha)} />
+                <Fila label="N° Resolución" valor={jornada.nro_resolucion} />
                 <Fila label="Fecha Resolución" valor={formatFecha(jornada.fecha_resolucion)} />
-                <Fila label="Nombre Predio"  valor={jornada.predio_nombre} />
-                <Fila label="ROL"            valor={jornada.rol} />
+                <Fila label="Nombre Predio" valor={jornada.predio_nombre} />
+                <Fila label="ROL" valor={jornada.rol} />
               </Seccion>
               <Seccion titulo="Punto de Referencia WGS84">
-                <Fila label="HUSO"      valor={jornada.punto_referencia_huso} />
-                <Fila label="ESTE (m)"  valor={jornada.punto_referencia_este} />
+                <Fila label="HUSO" valor={jornada.punto_referencia_huso} />
+                <Fila label="ESTE (m)" valor={jornada.punto_referencia_este} />
                 <Fila label="NORTE (m)" valor={jornada.punto_referencia_norte} />
               </Seccion>
               <Seccion titulo="Actividades Realizadas">
                 <ListaArray items={jornada.actividades} />
               </Seccion>
               <Seccion titulo="Superficies">
-                <Fila label="Superficie total (Ha)"       valor={jornada.superficie_total_predio} />
-                <Fila label="Sup. bajo régimen (Ha)"      valor={jornada.superficie_bajo_regimen} />
-                <Fila label="Sup. manejada (Ha)"          valor={jornada.superficie_manejada} />
-                <Fila label="Sup. bosque nativo (Ha)"     valor={jornada.superficie_bosque_nativo} />
+                <Fila label="Superficie total (Ha)" valor={jornada.superficie_total_predio} />
+                <Fila label="Sup. bajo régimen (Ha)" valor={jornada.superficie_bajo_regimen} />
+                <Fila label="Sup. manejada (Ha)" valor={jornada.superficie_manejada} />
+                <Fila label="Sup. bosque nativo (Ha)" valor={jornada.superficie_bosque_nativo} />
                 <Fila label="Sup. anual planificada (Ha)" valor={jornada.superficie_anual_planificada} />
-                <Fila label="Sup. marcada (Ha)"           valor={jornada.superficie_marcada} />
-                <Fila label="Sup. marcada (Km)"           valor={jornada.superficie_marcada_km} />
+                <Fila label="Sup. marcada (Ha)" valor={jornada.superficie_marcada} />
+                <Fila label="Sup. marcada (Km)" valor={jornada.superficie_marcada_km} />
               </Seccion>
               <Seccion titulo="Observaciones y Prescripciones">
-                <Texto label="Observaciones"          valor={jornada.observaciones} />
+                <Texto label="Observaciones" valor={jornada.observaciones} />
                 <Texto label="Prescripciones técnicas" valor={jornada.prescripciones} />
-                <Texto label="Medidas de protección"  valor={jornada.medidas_proteccion} />
-                <Texto label="Materiales utilizados"  valor={jornada.materiales_utilizados} />
+                <Texto label="Medidas de protección" valor={jornada.medidas_proteccion} />
+                <Texto label="Materiales utilizados" valor={jornada.materiales_utilizados} />
               </Seccion>
             </>
           )}
@@ -148,9 +154,9 @@ function Seccion({ titulo, children }) {
 
 function Fila({ label, valor }) {
   return (
-    <div className="flex justify-between text-sm py-1 border-b border-gray-50">
+    <div className="flex justify-between gap-2 text-sm py-1 border-b border-gray-50">
       <span className="text-gray-500 w-1/2">{label}</span>
-      <span className="font-medium text-gray-800 w-1/2 text-right">{valor ?? '—'}</span>
+      <span className="font-medium text-gray-800 w-1/2 text-right break-words">{valor ?? '—'}</span>
     </div>
   )
 }
@@ -191,6 +197,8 @@ function formatFecha(fecha) {
 
 export default function JornadasTotalesPage() {
   const router                          = useRouter()
+  const { data: session }               = useSession()
+  const esAdmin                         = session?.user?.roleId === 1
   const [jornadas, setJornadas]         = useState([])
   const [loading, setLoading]           = useState(true)
   const [jornadaModal, setJornadaModal] = useState(null)
@@ -214,7 +222,7 @@ export default function JornadasTotalesPage() {
         const data = await res.json()
         setJornadas(data)
       } catch (error) {
-        setNotificacion({ mensaje: error.message })
+        setNotificacion({ mensaje: error.message, tipo: 'error' })
       } finally {
         setLoading(false)
       }
@@ -227,10 +235,10 @@ export default function JornadasTotalesPage() {
       const texto = busqueda.toLowerCase()
       const coincideTexto =
         !texto ||
-        j.propietario_nombre?.toLowerCase().includes(texto) ||
-        j.propietario_rut?.toLowerCase().includes(texto) ||
-        j.extensionista_nombre?.toLowerCase().includes(texto) ||
-        j.propietario_comuna?.toLowerCase().includes(texto)
+        (j.propietario_nombre?.toLowerCase() || '').includes(texto) ||
+        (j.propietario_rut?.toLowerCase() || '').includes(texto) ||
+        (j.extensionista_nombre?.toLowerCase() || '').includes(texto) ||
+        (j.propietario_comuna?.toLowerCase() || '').includes(texto)
       const coincideTipo  = filtroTipo === 'todos' || j.tipo === filtroTipo
       const fecha         = new Date(j.fecha)
       const coincideDesde = !filtroFechaDesde || fecha >= new Date(filtroFechaDesde)
@@ -246,24 +254,28 @@ export default function JornadasTotalesPage() {
     setFiltroFechaHasta('')
   }
 
+  const columnas = esAdmin
+    ? ['Tipo', 'Fecha', 'N° / ID', 'Propietario', 'RUT', 'Comuna', 'Extensionista', 'Actividades', 'Sup. Total (Ha)', 'Ver']
+    : ['Tipo', 'Fecha', 'N° / ID', 'Propietario', 'RUT', 'Comuna', 'Actividades', 'Sup. Total (Ha)', 'Ver']
+
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
 
       <Notificacion notificacion={notificacion} />
 
-      <button onClick={() => router.push('/admin')}
+      <button onClick={() => router.push('/extensionista')}
         className="flex items-center gap-2 text-green-700 hover:text-green-900 font-medium text-sm transition">
         ← Volver al Dashboard
       </button>
 
-      <h1 className="text-3xl font-bold text-green-800">Jornadas Totales</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-green-800">Jornadas Totales</h1>
       <p className="text-gray-500 text-sm">Talonarios de terreno y jornadas de marcación registradas</p>
 
       <div className="bg-gray-50 border rounded p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por propietario, RUT, extensionista, comuna..."
-            className="border p-3 rounded w-full col-span-1 md:col-span-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+            placeholder="Buscar por propietario, RUT, comuna..."
+            className="border p-3 rounded w-full col-span-1 sm:col-span-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
           <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
             className="border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500">
             <option value="todos">Todos los tipos</option>
@@ -275,7 +287,7 @@ export default function JornadasTotalesPage() {
             Limpiar filtros
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold mb-1 text-gray-600">Fecha desde</label>
             <input type="date" value={filtroFechaDesde}
@@ -305,41 +317,45 @@ export default function JornadasTotalesPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-green-700 text-white">
               <tr>
-                <th className="px-4 py-3 text-left">Tipo</th>
-                <th className="px-4 py-3 text-left">Fecha</th>
-                <th className="px-4 py-3 text-left">N° / ID</th>
-                <th className="px-4 py-3 text-left">Propietario</th>
-                <th className="px-4 py-3 text-left">RUT</th>
-                <th className="px-4 py-3 text-left">Comuna</th>
-                <th className="px-4 py-3 text-left">Extensionista</th>
-                <th className="px-4 py-3 text-left">Actividades</th>
-                <th className="px-4 py-3 text-left">Sup. Total (Ha)</th>
-                <th className="px-4 py-3 text-left">Ver</th>
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap">Tipo</th>
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap">Fecha</th>
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden sm:table-cell">N° / ID</th>
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap">Propietario</th>
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden md:table-cell">RUT</th>
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden lg:table-cell">Comuna</th>
+                {esAdmin && (
+                  <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden lg:table-cell">Extensionista</th>
+                )}
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden md:table-cell">Actividades</th>
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden sm:table-cell">Sup. Total (Ha)</th>
+                <th className="px-3 sm:px-4 py-3 text-left whitespace-nowrap">Ver</th>
               </tr>
             </thead>
             <tbody>
               {jornadasFiltradas.map((j, i) => (
                 <tr key={`${j.tipo}-${j.id}`} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${TIPO_LABEL[j.tipo].color}`}>
+                  <td className="px-3 sm:px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${TIPO_LABEL[j.tipo].color}`}>
                       {TIPO_LABEL[j.tipo].label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatFecha(j.fecha)}</td>
-                  <td className="px-4 py-3">{j.nro_talonario || `#${j.id}`}</td>
-                  <td className="px-4 py-3 font-medium">{j.propietario_nombre || '—'}</td>
-                  <td className="px-4 py-3">{j.propietario_rut || '—'}</td>
-                  <td className="px-4 py-3">{j.propietario_comuna || '—'}</td>
-                  <td className="px-4 py-3">{j.extensionista_nombre || '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3 whitespace-nowrap">{formatFecha(j.fecha)}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden sm:table-cell">{j.nro_talonario || `#${j.id}`}</td>
+                  <td className="px-3 sm:px-4 py-3 font-medium">{j.propietario_nombre || '—'}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell">{j.propietario_rut || '—'}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden lg:table-cell">{j.propietario_comuna || '—'}</td>
+                  {esAdmin && (
+                    <td className="px-3 sm:px-4 py-3 hidden lg:table-cell">{j.extensionista_nombre || '—'}</td>
+                  )}
+                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell">
                     {Array.isArray(j.actividades) && j.actividades.length > 0
                       ? j.actividades.slice(0, 2).join(', ') + (j.actividades.length > 2 ? ` +${j.actividades.length - 2}` : '')
                       : '—'}
                   </td>
-                  <td className="px-4 py-3">{j.superficie_total_predio ?? '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3 hidden sm:table-cell">{j.superficie_total_predio ?? '—'}</td>
+                  <td className="px-3 sm:px-4 py-3">
                     <button onClick={() => setJornadaModal(j)}
-                      className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition">
+                      className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition whitespace-nowrap">
                       Ver
                     </button>
                   </td>

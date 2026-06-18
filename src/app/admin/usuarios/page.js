@@ -24,7 +24,7 @@ function Notificacion({ notificacion }) {
   }
   const iconos = { success: '✓', error: '✕', warning: '⚠' }
   return (
-    <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg ${estilos[notificacion.tipo]}`}>
+    <div className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-[100] flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl border shadow-lg max-w-[calc(100vw-2rem)] ${estilos[notificacion.tipo]}`}>
       <span className="text-lg font-bold">{iconos[notificacion.tipo]}</span>
       <p className="text-sm font-medium">{notificacion.mensaje}</p>
     </div>
@@ -94,17 +94,17 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-bold text-green-800">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
+          <h2 className="text-lg sm:text-xl font-bold text-green-800">
             {esEdicion ? 'Modificar Usuario' : 'Agregar Usuario'}
           </h2>
           <button onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">✕</button>
+            className="text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none shrink-0 ml-2">✕</button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
               {error}
@@ -134,7 +134,7 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
               onChange={handleChange} placeholder={esEdicion ? 'Nueva contraseña (opcional)' : 'Contraseña'}
               className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 RUT <span className="text-red-500">*</span>
@@ -162,13 +162,13 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
           </div>
         </div>
 
-        <div className="flex gap-3 p-6 border-t">
+        <div className="flex flex-col sm:flex-row gap-3 p-4 sm:p-6 border-t">
           <button onClick={onClose}
-            className="flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+            className="flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm font-medium order-2 sm:order-1">
             Cancelar
           </button>
           <button onClick={handleGuardar} disabled={guardando}
-            className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition text-sm font-semibold disabled:opacity-50">
+            className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition text-sm font-semibold disabled:opacity-50 order-1 sm:order-2">
             {guardando ? 'Guardando...' : esEdicion ? 'Guardar cambios' : 'Crear usuario'}
           </button>
         </div>
@@ -276,7 +276,7 @@ export default function AdminUsuarios() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center px-4">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
         <p className="text-lg text-gray-600 font-medium">Cargando usuarios...</p>
@@ -286,8 +286,8 @@ export default function AdminUsuarios() {
 
   if (error) return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Error al cargar</h2>
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Error al cargar</h2>
         <p className="text-gray-600 mb-8">{error}</p>
         <button onClick={() => window.location.reload()}
           className="w-full bg-green-600 text-white py-3 px-6 rounded-xl hover:bg-green-700 transition font-semibold">
@@ -298,7 +298,7 @@ export default function AdminUsuarios() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
 
         <Notificacion notificacion={notificacion} />
@@ -308,37 +308,37 @@ export default function AdminUsuarios() {
           onCancelar={() => setModalConfirmar(null)}
         />
 
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-6 border-b border-green-100">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 sm:mb-8 pb-6 border-b border-green-100">
           <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-800 to-green-600 bg-clip-text text-transparent leading-tight">
+            <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-800 to-green-600 bg-clip-text text-transparent leading-tight">
               Gestión de Usuarios
             </h1>
             <p className="text-gray-600 mt-2 text-sm sm:text-base">
               Administra todos los usuarios del sistema
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button onClick={() => router.back()}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition font-medium shadow-lg text-sm">
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition font-medium shadow-lg text-sm">
               <ArrowLeftIcon className="h-5 w-5" />
               Volver
             </button>
             <button onClick={() => { setUsuarioModal(null); setModalAbierto(true) }}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition font-medium shadow-lg text-sm">
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition font-medium shadow-lg text-sm">
               <PlusIcon className="h-5 w-5" />
               Agregar
             </button>
           </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-green-100 overflow-hidden">
-          <div className="px-6 py-8 sm:px-8 border-b border-green-50 bg-gradient-to-r from-green-50 to-green-100">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border border-green-100 overflow-hidden">
+          <div className="px-4 py-6 sm:px-8 sm:py-8 border-b border-green-50 bg-gradient-to-r from-green-50 to-green-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-2xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-green-100 rounded-2xl flex items-center justify-center shrink-0">
                 <UserIcon className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                <h2 className="text-lg sm:text-2xl font-bold text-gray-900">
                   Lista de Usuarios ({usuarios.length})
                 </h2>
                 <p className="text-green-600 text-sm">Total de usuarios registrados</p>
@@ -350,19 +350,19 @@ export default function AdminUsuarios() {
             <table className="w-full divide-y divide-green-50">
               <thead className="bg-gradient-to-r from-green-600/10 to-green-700/10">
                 <tr>
-                  <th className="px-6 py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                  <th className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider whitespace-nowrap">
                     <div className="flex items-center gap-2"><IdentificationIcon className="h-4 w-4" />ID</div>
                   </th>
-                  <th className="px-6 py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                  <th className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider whitespace-nowrap">
                     <div className="flex items-center gap-2"><UserIcon className="h-4 w-4" />Nombre</div>
                   </th>
-                  <th className="px-6 py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider hidden md:table-cell">
+                  <th className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider hidden md:table-cell whitespace-nowrap">
                     <div className="flex items-center gap-2"><EnvelopeIcon className="h-4 w-4" />Email</div>
                   </th>
-                  <th className="px-6 py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider hidden sm:table-cell">RUT</th>
-                  <th className="px-6 py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider hidden sm:table-cell">Teléfono</th>
-                  <th className="px-6 py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">Rol</th>
-                  <th className="px-6 py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">Acciones</th>
+                  <th className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider hidden sm:table-cell whitespace-nowrap">RUT</th>
+                  <th className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider hidden lg:table-cell whitespace-nowrap">Teléfono</th>
+                  <th className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider whitespace-nowrap">Rol</th>
+                  <th className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-left text-xs font-semibold text-green-800 uppercase tracking-wider whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-green-50">
@@ -377,12 +377,12 @@ export default function AdminUsuarios() {
                 ) : (
                   usuarios.map(user => (
                     <tr key={user.id} className="hover:bg-green-50/50 transition-all group">
-                      <td className="px-6 py-5 lg:px-8">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                      <td className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 whitespace-nowrap">
                           #{user.id.toString().slice(0, 8)}...
                         </span>
                       </td>
-                      <td className="px-6 py-5 lg:px-8">
+                      <td className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                             <UserIcon className="h-4 w-4 text-indigo-600" />
@@ -390,7 +390,7 @@ export default function AdminUsuarios() {
                           <p className="text-sm font-semibold text-gray-900">{user.nombre || '—'}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-5 lg:px-8 hidden md:table-cell">
+                      <td className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 hidden md:table-cell">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                             <EnvelopeIcon className="h-4 w-4 text-green-600" />
@@ -398,21 +398,21 @@ export default function AdminUsuarios() {
                           <p className="text-sm text-gray-700">{user.email || '—'}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-5 lg:px-8 text-sm text-gray-700 hidden sm:table-cell">{user.rut || '—'}</td>
-                      <td className="px-6 py-5 lg:px-8 text-sm text-gray-700 hidden sm:table-cell">{user.telefono || '—'}</td>
-                      <td className="px-6 py-5 lg:px-8">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${ROL_COLOR[user.rol] || 'bg-gray-100 text-gray-500'}`}>
+                      <td className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-sm text-gray-700 hidden sm:table-cell">{user.rut || '—'}</td>
+                      <td className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 text-sm text-gray-700 hidden lg:table-cell">{user.telefono || '—'}</td>
+                      <td className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${ROL_COLOR[user.rol] || 'bg-gray-100 text-gray-500'}`}>
                           {user.rol}
                         </span>
                       </td>
-                      <td className="px-6 py-5 lg:px-8">
+                      <td className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
                         <div className="flex gap-2">
                           <button onClick={() => { setUsuarioModal(user); setModalAbierto(true) }}
-                            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs font-medium transition">
+                            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs font-medium transition whitespace-nowrap">
                             Modificar
                           </button>
                           <button onClick={() => confirmarEliminar(user.id)}
-                            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs font-medium transition">
+                            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs font-medium transition whitespace-nowrap">
                             Eliminar
                           </button>
                         </div>

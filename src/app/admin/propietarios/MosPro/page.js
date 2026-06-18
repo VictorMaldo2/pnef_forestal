@@ -12,7 +12,7 @@ function Notificacion({ notificacion }) {
   }
   const iconos = { success: '✓', error: '✕', warning: '⚠' }
   return (
-    <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg ${estilos[notificacion.tipo]}`}>
+    <div className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-[100] flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl border shadow-lg max-w-[calc(100vw-2rem)] ${estilos[notificacion.tipo]}`}>
       <span className="text-lg font-bold">{iconos[notificacion.tipo]}</span>
       <p className="text-sm font-medium">{notificacion.mensaje}</p>
     </div>
@@ -177,19 +177,19 @@ export default function PropietariosAdminPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-green-700 text-lg">Cargando propietarios...</p>
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <p className="text-green-700 text-lg text-center">Cargando propietarios...</p>
     </div>
   )
 
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-red-600 text-lg">{error}</p>
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <p className="text-red-600 text-lg text-center">{error}</p>
     </div>
   )
 
   return (
-    <div className="max-w-7xl mx-auto p-8">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
 
       <Notificacion notificacion={notificacion} />
       <ModalConfirmar
@@ -198,15 +198,15 @@ export default function PropietariosAdminPage() {
         onCancelar={() => setModalConfirmar(null)}
       />
 
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-green-800">Propietarios</h2>
-        <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-semibold text-green-800">Propietarios</h2>
+        <div className="flex flex-col sm:flex-row gap-3">
           <button onClick={() => router.push('/admin/propietarios/agregar')}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-medium">
-            + Agregar propietario
+            className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 font-medium text-sm sm:text-base whitespace-nowrap">
+             Agregar propietario
           </button>
           <button onClick={() => router.back()}
-            className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
+            className="bg-gray-500 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-600 text-sm sm:text-base whitespace-nowrap">
             ← Volver
           </button>
         </div>
@@ -220,8 +220,8 @@ export default function PropietariosAdminPage() {
         <p className="text-center text-gray-500">No se encontraron propietarios.</p>
       ) : (
         <div className="bg-white rounded-xl shadow-lg border border-green-100 overflow-hidden">
-          <div className="p-6 border-b border-green-100">
-            <h3 className="text-xl font-semibold text-green-800">
+          <div className="p-4 sm:p-6 border-b border-green-100">
+            <h3 className="text-lg sm:text-xl font-semibold text-green-800">
               Lista de Propietarios ({propietariosFiltrados.length})
             </h3>
           </div>
@@ -229,21 +229,21 @@ export default function PropietariosAdminPage() {
             <table className="min-w-full">
               <thead className="bg-green-50">
                 <tr>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Nombre</th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">RUT</th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Comunidad</th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Comuna</th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Teléfono</th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Email</th>
-                  <th className="border-b border-green-100 p-4 text-left text-green-800 font-semibold">Acciones</th>
+                  <th className="border-b border-green-100 p-3 sm:p-4 text-left text-green-800 font-semibold whitespace-nowrap">Nombre</th>
+                  <th className="border-b border-green-100 p-3 sm:p-4 text-left text-green-800 font-semibold whitespace-nowrap">RUT</th>
+                  <th className="border-b border-green-100 p-3 sm:p-4 text-left text-green-800 font-semibold whitespace-nowrap hidden md:table-cell">Comunidad</th>
+                  <th className="border-b border-green-100 p-3 sm:p-4 text-left text-green-800 font-semibold whitespace-nowrap hidden sm:table-cell">Comuna</th>
+                  <th className="border-b border-green-100 p-3 sm:p-4 text-left text-green-800 font-semibold whitespace-nowrap hidden lg:table-cell">Teléfono</th>
+                  <th className="border-b border-green-100 p-3 sm:p-4 text-left text-green-800 font-semibold whitespace-nowrap hidden lg:table-cell">Email</th>
+                  <th className="border-b border-green-100 p-3 sm:p-4 text-left text-green-800 font-semibold whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {propietariosFiltrados.map(p => (
                   <tr key={p.id} className="hover:bg-green-50">
-                    <td className="border-b border-green-50 p-4 font-medium">{p.nombre}</td>
-                    <td className="border-b border-green-50 p-4">{p.rut}</td>
-                    <td className="border-b border-green-50 p-4">
+                    <td className="border-b border-green-50 p-3 sm:p-4 font-medium whitespace-nowrap">{p.nombre}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 whitespace-nowrap">{p.rut}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 hidden md:table-cell">
                       {p.comunidad_indigena
                         ? <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
                             {p.comunidad_nombre || 'Sí'}
@@ -251,18 +251,20 @@ export default function PropietariosAdminPage() {
                         : <span className="text-gray-400 text-sm">No</span>
                       }
                     </td>
-                    <td className="border-b border-green-50 p-4">{p.comuna || '—'}</td>
-                    <td className="border-b border-green-50 p-4">{p.telefono || '—'}</td>
-                    <td className="border-b border-green-50 p-4">{p.email || '—'}</td>
-                    <td className="border-b border-green-50 p-4 space-x-2">
-                      <button onClick={() => openEditModal(p)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">
-                        Editar
-                      </button>
-                      <button onClick={() => confirmarDelete(p.id)}
-                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm">
-                        Eliminar
-                      </button>
+                    <td className="border-b border-green-50 p-3 sm:p-4 hidden sm:table-cell">{p.comuna || '—'}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 hidden lg:table-cell">{p.telefono || '—'}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4 hidden lg:table-cell">{p.email || '—'}</td>
+                    <td className="border-b border-green-50 p-3 sm:p-4">
+                      <div className="flex gap-2">
+                        <button onClick={() => openEditModal(p)}
+                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs sm:text-sm whitespace-nowrap">
+                          Editar
+                        </button>
+                        <button onClick={() => confirmarDelete(p.id)}
+                          className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-xs sm:text-sm whitespace-nowrap">
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -328,13 +330,13 @@ export default function PropietariosAdminPage() {
                     className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:outline-none" />
                 </div>
               )}
-              <div className="flex justify-end space-x-2 pt-2">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setEditPropietario(null)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm">
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm order-2 sm:order-1">
                   Cancelar
                 </button>
                 <button type="submit" disabled={processing}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm font-semibold">
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm font-semibold order-1 sm:order-2">
                   {processing ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
