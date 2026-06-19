@@ -93,6 +93,8 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
     }
   }
 
+  const inputClass = "border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm text-gray-800 placeholder-gray-400"
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -115,16 +117,14 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
               Nombre completo <span className="text-red-500">*</span>
             </label>
             <input type="text" name="nombre" value={form.nombre}
-              onChange={handleChange} placeholder="Nombre completo"
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+              onChange={handleChange} placeholder="Nombre completo" className={inputClass} />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Email <span className="text-red-500">*</span>
             </label>
             <input type="email" name="email" value={form.email}
-              onChange={handleChange} placeholder="correo@ejemplo.com"
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+              onChange={handleChange} placeholder="correo@ejemplo.com" className={inputClass} />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -132,7 +132,7 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
             </label>
             <input type="password" name="password" value={form.password}
               onChange={handleChange} placeholder={esEdicion ? 'Nueva contraseña (opcional)' : 'Contraseña'}
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+              className={inputClass} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -140,22 +140,19 @@ function ModalUsuario({ usuario, onClose, onGuardar }) {
                 RUT <span className="text-red-500">*</span>
               </label>
               <input type="text" name="rut" value={form.rut}
-                onChange={handleChange} placeholder="12345678-9"
-                className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+                onChange={handleChange} placeholder="12345678-9" className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Teléfono</label>
               <input type="text" name="telefono" value={form.telefono}
-                onChange={handleChange} placeholder="+56912345678"
-                className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm" />
+                onChange={handleChange} placeholder="+56912345678" className={inputClass} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Rol <span className="text-red-500">*</span>
             </label>
-            <select name="role_id" value={form.role_id} onChange={handleChange}
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:outline-none text-sm">
+            <select name="role_id" value={form.role_id} onChange={handleChange} className={inputClass}>
               <option value="2">Extensionista</option>
               <option value="1">Administrador</option>
             </select>
