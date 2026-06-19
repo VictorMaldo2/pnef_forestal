@@ -23,7 +23,7 @@ const actividadesOpciones = [
   { value: 'otro',                       label: 'Otro' },
 ]
 
-const inputClass   = "border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500"
+const inputClass   = "border p-3 rounded w-full text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
 const labelClass   = "block font-semibold mb-1 text-sm text-gray-700"
 const sectionClass = "bg-gray-50 border rounded p-4 space-y-4"
 const sectionTitle = "font-bold text-green-700 text-lg mb-3 border-b pb-2"
@@ -58,7 +58,7 @@ function BuscadorPropietario({ propietarios, value, onChange }) {
           onChange={e => { setBusqueda(e.target.value); setAbierto(true); onChange(null) }}
           onFocus={() => { setAbierto(true); setBusqueda('') }}
           placeholder="Buscar propietario por nombre o RUT..."
-          className="flex-1 p-3 text-sm outline-none bg-white" />
+          className="flex-1 p-3 text-sm text-gray-800 placeholder-gray-400 outline-none bg-white" />
         {value && (
           <button type="button" onClick={limpiar}
             className="px-3 text-gray-400 hover:text-gray-600 text-lg">✕</button>
@@ -67,12 +67,12 @@ function BuscadorPropietario({ propietarios, value, onChange }) {
       {abierto && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded shadow-xl max-h-60 overflow-y-auto">
           {filtrados.length === 0
-            ? <p className="px-4 py-3 text-sm text-gray-400">No se encontraron propietarios</p>
+            ? <p className="px-4 py-3 text-sm text-gray-500">No se encontraron propietarios</p>
             : filtrados.map(p => (
                 <button key={p.id} type="button" onClick={() => seleccionar(p)}
-                  className="w-full text-left px-4 py-3 text-sm hover:bg-green-50 hover:text-green-700 transition-colors border-b border-gray-50 last:border-0">
+                  className="w-full text-left px-4 py-3 text-sm text-gray-800 hover:bg-green-50 hover:text-green-700 transition-colors border-b border-gray-50 last:border-0">
                   <span className="font-medium">{p.nombre}</span>
-                  <span className="text-gray-400 ml-2">{p.rut}</span>
+                  <span className="text-gray-500 ml-2">{p.rut}</span>
                 </button>
               ))
           }
@@ -208,7 +208,7 @@ export default function TalonarioTerrenoForm() {
       </button>
 
       <h1 className="text-3xl font-bold text-center text-green-800">Talonario de Terreno</h1>
-      <p className="text-center text-gray-500 text-sm">Programa Nacional de Extensión Forestal</p>
+      <p className="text-center text-gray-600 text-sm">Programa Nacional de Extensión Forestal</p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -234,7 +234,7 @@ export default function TalonarioTerrenoForm() {
                     <input type="radio" name="tipo_recurso" value={v}
                       checked={form.tipo_recurso === v} onChange={handleChange}
                       className="accent-green-600" />
-                    <span className="text-sm">{l}</span>
+                    <span className="text-sm text-gray-800">{l}</span>
                   </label>
                 ))}
               </div>
@@ -255,7 +255,7 @@ export default function TalonarioTerrenoForm() {
           </div>
 
           {propietarioSeleccionado && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 bg-green-50 p-3 rounded text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 bg-green-50 p-3 rounded text-sm text-gray-800">
               <div><span className="font-semibold">RUT:</span> {propietarioSeleccionado.rut}</div>
               <div><span className="font-semibold">Comuna:</span> {propietarioSeleccionado.comuna}</div>
               <div><span className="font-semibold">Tipo:</span> {propietarioSeleccionado.tipo_propietario}</div>
@@ -308,7 +308,7 @@ export default function TalonarioTerrenoForm() {
                   <input type="radio" name="rol_persona_presente" value={v}
                     checked={form.rol_persona_presente === v} onChange={handleChange}
                     className="accent-green-600" />
-                  <span className="text-sm">{l}</span>
+                  <span className="text-sm text-gray-800">{l}</span>
                 </label>
               ))}
             </div>
@@ -325,7 +325,7 @@ export default function TalonarioTerrenoForm() {
                   checked={form.actividades.includes(value)}
                   onChange={handleActividadChange}
                   className="mt-1 accent-green-600" />
-                <span className="text-sm">{label}</span>
+                <span className="text-sm text-gray-800">{label}</span>
               </label>
             ))}
           </div>

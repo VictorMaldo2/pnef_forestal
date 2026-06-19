@@ -43,7 +43,7 @@ function BuscadorPropietario({ propietarios, value, onChange }) {
           onChange={e => { setBusqueda(e.target.value); setAbierto(true); onChange(null) }}
           onFocus={() => { setAbierto(true); setBusqueda('') }}
           placeholder="Buscar propietario por nombre o RUT..."
-          className="flex-1 px-4 py-4 bg-transparent text-sm outline-none"
+          className="flex-1 px-4 py-4 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
         />
         {value && (
           <button type="button" onClick={limpiar}
@@ -53,13 +53,13 @@ function BuscadorPropietario({ propietarios, value, onChange }) {
       {abierto && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
           {filtrados.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-gray-400">No se encontraron propietarios</p>
+            <p className="px-4 py-3 text-sm text-gray-500">No se encontraron propietarios</p>
           ) : (
             filtrados.map(p => (
               <button key={p.id} type="button" onClick={() => seleccionar(p)}
-                className="w-full text-left px-4 py-3 text-sm hover:bg-green-50 hover:text-green-700 transition-colors border-b border-gray-50 last:border-0">
+                className="w-full text-left px-4 py-3 text-sm text-gray-800 hover:bg-green-50 hover:text-green-700 transition-colors border-b border-gray-50 last:border-0">
                 <span className="font-medium">{p.nombre}</span>
-                <span className="text-gray-400 ml-2">{p.rut}</span>
+                <span className="text-gray-500 ml-2">{p.rut}</span>
               </button>
             ))
           )}
@@ -161,7 +161,7 @@ export default function AgendarVisitaPage() {
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-gradient-to-r from-green-800 via-green-700 to-emerald-700 bg-clip-text text-transparent mb-4">
             Agendar Visita
           </h1>
-          <p className="text-gray-600 text-lg sm:text-xl max-w-md mx-auto">
+          <p className="text-gray-700 text-lg sm:text-xl max-w-md mx-auto">
             Programa tu próxima visita de campo
           </p>
         </div>
@@ -216,7 +216,7 @@ export default function AgendarVisitaPage() {
               </label>
               <input type="date" value={fechaVisita}
                 onChange={e => setFechaVisita(e.target.value)}
-                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 text-sm shadow-inner transition-all duration-300 hover:border-green-300"
+                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 text-sm text-gray-800 shadow-inner transition-all duration-300 hover:border-green-300"
                 required />
             </div>
 
@@ -231,7 +231,7 @@ export default function AgendarVisitaPage() {
               </label>
               <textarea rows="4" value={descripcion}
                 onChange={e => setDescripcion(e.target.value)}
-                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 text-sm shadow-inner resize-vertical transition-all duration-300 hover:border-green-300"
+                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 text-sm text-gray-800 placeholder-gray-400 shadow-inner resize-vertical transition-all duration-300 hover:border-green-300"
                 placeholder="Descripción o notas adicionales de la visita..." />
             </div>
 
@@ -245,7 +245,7 @@ export default function AgendarVisitaPage() {
                 Actividad Relacionada
               </label>
               <select value={actividad} onChange={e => setActividad(e.target.value)}
-                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 text-sm shadow-inner transition-all duration-300 hover:border-green-300"
+                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 text-sm text-gray-800 shadow-inner transition-all duration-300 hover:border-green-300"
                 required>
                 <option value="">Seleccione actividad</option>
                 <option value="Inspección">Visita jornada marcación</option>

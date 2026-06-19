@@ -58,7 +58,7 @@ export default function LoginPage() {
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black bg-gradient-to-r from-gray-900 via-gray-800 to-green-900 bg-clip-text text-transparent mb-4 leading-tight">
               Plataforma PNEF Forestal
             </h1>
-            <p className="text-gray-600 text-sm sm:text-base lg:text-lg font-medium max-w-md mx-auto">
+            <p className="text-gray-700 text-sm sm:text-base lg:text-lg font-medium max-w-md mx-auto">
               Inicia sesión con tus credenciales
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 backdrop-blur-sm text-sm sm:text-base shadow-inner transition-all duration-300 hover:border-green-300"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 backdrop-blur-sm text-sm sm:text-base text-gray-800 placeholder-gray-400 shadow-inner transition-all duration-300 hover:border-green-300"
                 />
               </div>
             </div>
@@ -116,7 +116,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 backdrop-blur-sm text-sm sm:text-base shadow-inner transition-all duration-300 hover:border-green-300"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/30 focus:border-green-500 bg-white/50 backdrop-blur-sm text-sm sm:text-base text-gray-800 placeholder-gray-400 shadow-inner transition-all duration-300 hover:border-green-300"
                 />
               </div>
             </div>
