@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 
+const ERRORES_AMIGABLES = {
+  CredentialsSignin: 'Correo o contraseña incorrectos',
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,7 +38,7 @@ export default function LoginPage() {
     })
 
     if (res.error) {
-      setError(res.error)
+      setError(ERRORES_AMIGABLES[res.error] || 'Error al iniciar sesión. Intenta nuevamente.')
     }
   }
 
