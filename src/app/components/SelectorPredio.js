@@ -71,7 +71,7 @@ export default function SelectorPredio({ propietarioId, value, onChange }) {
   return (
     <div className="space-y-3">
       <div>
-        <label className="block font-semibold mb-1 text-sm text-gray-700">Predio</label>
+        <label className="block font-semibold mb-1 text-black text-gray-700">Predio</label>
         {loading ? (
           <p className="text-sm text-gray-700">Cargando predios...</p>
         ) : (
@@ -129,15 +129,15 @@ export default function SelectorPredio({ propietarioId, value, onChange }) {
       )}
 
       {value && predios.find(p => p.id.toString() === value.toString()) && (
-        <div className="bg-green-50 p-3 rounded text-sm grid grid-cols-2 gap-2">
+        <div className="bg-green-50 p-3 rounded text-black grid grid-cols-2 gap-2">
           {(() => {
             const p = predios.find(p => p.id.toString() === value.toString())
             return (
               <>
-                <div><span className="font-semibold">Nombre:</span> {p.nombre}</div>
-                <div><span className="font-semibold">ROL:</span> {p.rol || '—'}</div>
-                <div><span className="font-semibold">Comuna:</span> {p.comuna || '—'}</div>
-                <div><span className="font-semibold">Superficie:</span> {p.superficie_total ? `${p.superficie_total} Ha` : '—'}</div>
+                <div><span className="font-semibold text-black">Nombre:</span> {p.nombre}</div>
+                <div><span className="font-semibold text-black">ROL:</span> {p.rol || '—'}</div>
+                <div><span className="font-semibold text-black">Comuna:</span> {p.comuna || '—'}</div>
+                <div><span className="font-semibold text-black">Superficie:</span> {p.superficie_total ? `${p.superficie_total} Ha` : '—'}</div>
               </>
             )
           })()}
