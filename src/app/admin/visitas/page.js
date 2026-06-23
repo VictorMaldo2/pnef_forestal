@@ -336,7 +336,6 @@ export default function VisitasTotales() {
               <th className="border border-green-200 px-3 sm:px-4 py-3 text-left text-sm font-semibold text-green-700 uppercase whitespace-nowrap">Hora</th>
               <th className="border border-green-200 px-3 sm:px-4 py-3 text-left text-sm font-semibold text-green-700 uppercase whitespace-nowrap">Estado</th>
               <th className="border border-green-200 px-3 sm:px-4 py-3 text-left text-sm font-semibold text-green-700 uppercase whitespace-nowrap">Comunidad</th>
-              <th className="border border-green-200 px-3 sm:px-4 py-3 text-left text-sm font-semibold text-green-700 uppercase whitespace-nowrap">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -363,18 +362,7 @@ export default function VisitasTotales() {
                   <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm text-gray-800 whitespace-nowrap">
                     {visita.comunidad_indigena ? visita.comunidad_nombre || 'Indígena' : 'No'}
                   </td>
-                  <td className="border border-green-200 px-3 sm:px-4 py-3 text-sm">
-                    <div className="flex gap-2">
-                      <button onClick={() => setVisitaEditar(visita)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs font-medium transition whitespace-nowrap">
-                        Modificar
-                      </button>
-                      <button onClick={() => confirmarEliminar(visita.id)}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs font-medium transition whitespace-nowrap">
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
+                  
                 </tr>
               ))
             )}
