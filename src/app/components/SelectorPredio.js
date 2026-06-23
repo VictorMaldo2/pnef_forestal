@@ -78,7 +78,7 @@ export default function SelectorPredio({ propietarioId, value, onChange }) {
           <select
             value={value || ''}
             onChange={e => onChange(e.target.value || null)}
-            className="border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500">
+            className="border p-3 rounded w-full focus:outline-none text-black focus:ring-2 focus:ring-green-500">
             <option value="">Seleccione un predio</option>
             {predios.map(p => (
               <option key={p.id} value={p.id}>
