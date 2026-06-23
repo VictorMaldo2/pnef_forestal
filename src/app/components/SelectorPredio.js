@@ -73,7 +73,7 @@ export default function SelectorPredio({ propietarioId, value, onChange }) {
       <div>
         <label className="block font-semibold mb-1 text-sm text-gray-700">Predio</label>
         {loading ? (
-          <p className="text-sm text-gray-400">Cargando predios...</p>
+          <p className="text-sm text-gray-700">Cargando predios...</p>
         ) : (
           <select
             value={value || ''}
@@ -102,19 +102,19 @@ export default function SelectorPredio({ propietarioId, value, onChange }) {
           <input type="text" placeholder="Nombre del predio *"
             value={nuevoPredio.nombre}
             onChange={e => setNuevoPredio(prev => ({ ...prev, nombre: e.target.value }))}
-            className="border p-2 rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            className="border p-2 rounded w-full text-black focus:outline-none focus:ring-2 focus:ring-green-500" />
           <input type="text" placeholder="ROL"
             value={nuevoPredio.rol}
             onChange={e => setNuevoPredio(prev => ({ ...prev, rol: e.target.value }))}
-            className="border p-2 rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            className="border p-2 rounded w-full text-black focus:outline-none focus:ring-2 focus:ring-green-500" />
           <input type="text" placeholder="Comuna"
             value={nuevoPredio.comuna}
             onChange={e => setNuevoPredio(prev => ({ ...prev, comuna: e.target.value }))}
-            className="border p-2 rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            className="border p-2 rounded w-full text-black focus:outline-none focus:ring-2 focus:ring-green-500" />
           <input type="number" step="0.01" placeholder="Superficie total (Ha)"
             value={nuevoPredio.superficie_total}
             onChange={e => setNuevoPredio(prev => ({ ...prev, superficie_total: e.target.value }))}
-            className="border p-2 rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            className="border p-2 rounded w-full text-black focus:outline-none focus:ring-2 focus:ring-green-500" />
           <div className="flex gap-2">
             <button type="button" onClick={() => setMostrarForm(false)}
               className="flex-1 border border-gray-300 text-gray-600 py-2 rounded text-sm hover:bg-gray-50">
